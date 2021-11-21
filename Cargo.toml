@@ -1,0 +1,26 @@
+[package]
+name = "TaskScore"
+version = "0.1.0"
+authors = ["Frank Langner <frank.langner@posteo.de>"]
+edition = "2018"
+
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 3
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+serde_json = "1.0"
+serde = {version ="1.0", features = ["derive"]}
+dotenv = "0.15.0"
+r2d2 = "0.8.9"
+async-trait = "0.1.50"
+
+[dependencies.rocket]
+tag = "v0.5.0-rc.1"
+git = "https://github.com/SergioBenitez/Rocket"
+features = ["json"]
