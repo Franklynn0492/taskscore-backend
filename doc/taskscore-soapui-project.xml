@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<con:soapui-project id="9080e99a-e13a-4468-999c-3a6c47363277" activeEnvironment="Default" name="taskscore" soapui-version="5.5.0" abortOnError="false" runType="SEQUENTIAL" resourceRoot="" xmlns:con="http://eviware.com/soapui/config"><con:settings/><con:interface xsi:type="con:RestService" id="b37060ad-7a1b-4571-a85f-071b53db9b73" wadlVersion="http://wadl.dev.java.net/2009/02" name="application" type="rest" basePath="/" definitionUrl="http://lubuntu-virtualbox:8080/Stars/rest/application.wadl" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:settings/><con:definitionCache type="TEXT" rootPart="http://lubuntu-virtualbox:8080/Stars/rest/application.wadl"><con:part><con:url>http://lubuntu-virtualbox:8080/Stars/rest/application.wadl</con:url><con:content><![CDATA[<application xmlns="http://wadl.dev.java.net/2009/02">
+  <doc jersey:generatedBy="Jersey: 2.30.payara-p4 2021-02-01 14:07:34" xmlns:jersey="http://jersey.java.net/"/>
+  <doc jersey:hint="This is simplified WADL with user and core resources only. To get full WADL with extended resources use the query parameter detail. Link: http://lubuntu-virtualbox:8080/Stars/rest/application.wadl?detail=true" xmlns:jersey="http://jersey.java.net/"/>
+  <grammars/>
+  <resources base="http://lubuntu-virtualbox:8080/Stars/rest/">
+    <resource path="/constellation">
+      <method id="get" name="GET">
+        <request>
+          <param name="id" style="query" type="xs:string" xmlns:xs="http://www.w3.org/2001/XMLSchema"/>
+        </request>
+        <response>
+          <representation mediaType="application/json;charset=utf-8"/>
+        </response>
+      </method>
+      <resource path="/all">
+        <method id="getAll" name="GET">
+          <response>
+            <representation mediaType="application/json;charset=utf-8"/>
+          </response>
+        </method>
+      </resource>
+    </resource>
+    <resource path="/star">
+      <method id="get" name="GET">
+        <request>
+          <param name="id" style="query" type="xs:long" xmlns:xs="http://www.w3.org/2001/XMLSchema"/>
+        </request>
+        <response>
+          <representation mediaType="application/json;charset=utf-8"/>
+        </response>
+      </method>
+      <resource path="/all">
+        <method id="getAll" name="GET">
+          <response>
+            <representation mediaType="application/json;charset=utf-8"/>
+          </response>
+        </method>
+      </resource>
+      <resource path="/constellation">
+        <method id="getAllInConstellation" name="GET">
+          <request>
+            <param name="constellationId" style="query" type="xs:string" xmlns:xs="http://www.w3.org/2001/XMLSchema"/>
+          </request>
+          <response>
+            <representation mediaType="application/json;charset=utf-8"/>
+          </response>
+        </method>
+      </resource>
+    </resource>
+  </resources>
+</application>]]></con:content><con:type>http://wadl.dev.java.net/2009/02</con:type></con:part></con:definitionCache><con:endpoints><con:endpoint>http://localhost:8000/TaskScore/rest</con:endpoint></con:endpoints><con:resource name="/" path="" id="4c4a29d4-1912-4fe0-846f-b3fd19096dd6"><con:settings/><con:parameters/><con:method name="GET - get" id="d03c1e6f-3887-41f8-b7e0-5da8eb158c9a" method="GET"><con:settings/><con:parameters/><con:representation type="RESPONSE" id=""><con:mediaType>application/json;charset=utf-8</con:mediaType><con:params/><con:element xsi:nil="true"/><con:description xsi:nil="true"/></con:representation><con:request name="Request 1" id="5fdb52d9-20b8-4be8-babf-cea2c8d46b04" mediaType="application/json"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:endpoint>http://localhost:8000/TaskScore/rest</con:endpoint><con:request/><con:originalUri>http://localhost/Stars/rest/star</con:originalUri><con:credentials><con:username xsi:nil="true"/><con:password xsi:nil="true"/><con:domain xsi:nil="true"/><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters><entry key="id" value="100" xmlns="http://eviware.com/soapui/config"/></con:parameters><con:parameterOrder/></con:request></con:method></con:resource></con:interface><con:testSuite id="36714bb5-5191-4bf3-a2ad-bfc5234e92a9" name="TestSuite 1"><con:settings/><con:runType>SEQUENTIAL</con:runType><con:properties/></con:testSuite><con:endpointStrategy xsi:type="con:DefaultEndpointStrategy" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:endpoint mode="OVERRIDE">http://localhost:8000/TaskScore/rest</con:endpoint><con:endpoint mode="OVERRIDE">http://localhost:8080</con:endpoint></con:endpointStrategy><con:properties/><con:wssContainer/><con:oAuth2ProfileContainer/><con:oAuth1ProfileContainer/></con:soapui-project>
