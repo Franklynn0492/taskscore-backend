@@ -19,6 +19,7 @@ serde = {version ="1.0", features = ["derive"]}
 dotenv = "0.15.0"
 r2d2 = "0.8.9"
 async-trait = "0.1.50"
+chrono = { version = "0.4", features = ["serde"] }
 
 [dependencies.rocket]
 tag = "v0.5.0-rc.1"
