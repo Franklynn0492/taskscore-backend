@@ -4,6 +4,7 @@ pub mod users {
     use super::tasks::{self, Score, Task};
 
     #[derive(serde::Serialize)]
+    #[derive(Clone)]
     pub struct User {
         pub id: u32,
         pub name: String,
@@ -38,6 +39,7 @@ pub mod tasks {
     }
 
     #[derive(serde::Serialize)]
+    #[derive(Clone)]
     pub struct Score {
         pub task: Task,
         pub points: u16,
