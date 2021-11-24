@@ -1,16 +1,15 @@
 use crate::model::{tasks::*, users::{*, self}};
-use std::sync::Mutex;
+use std::{ops::Add, sync::{Mutex, Arc}};
 
 pub struct Repository {
-    users: Box<Vec<Mutex<User>>>,
+    users: Arc<Mutex<Vec<Arc<Mutex<User>>>>>,
     tasks: Box<Vec<Task>>
 }
 
 impl Repository {
     pub fn init_repository() -> Repository {
-        let mut flori = User::new(1, "Flori");
-        let mut michi = User::new(2, "Michi");
-        let franki = User::new(3, "Franki");
+
+        let mut users = vec![];
 
         let tasks = vec![
             Task { id: 1, name: "Blumen gießen".to_owned(), points: 10, enabled: true},
@@ -19,29 +18,30 @@ impl Repository {
             Task { id: 4, name: "Kaffee kochen".to_owned(), points: 75, enabled: true},
         ];
 
-        flori.score_task(tasks[0].clone());
-        flori.score_task(tasks[0].clone());
-        flori.score_task(tasks[1].clone());
-        flori.score_task(tasks[0].clone());
-        flori.score_task(tasks[3].clone());
-        flori.score_task(tasks[2].clone());
-        
-        michi.score_task(tasks[0].clone());
-        michi.score_task(tasks[1].clone());
-        michi.score_task(tasks[2].clone());
-        michi.score_task(tasks[3].clone());
+        let mut repository = Repository {users: Arc::new(Mutex::new(users)), tasks: Box::new(tasks)};
 
-        let mut users = vec![
-            Mutex::new(flori),
-            Mutex::new(michi),
-            Mutex::new(franki)
-        ];
+        let flori_id = repository.create_and_add_user("roterkohl".to_owned(), "Flori".to_owned(), "Flori1234".to_owned()).unwrap();
+        let michi_id = repository.create_and_add_user("brutours.de".to_owned(), "Michi".to_owned(), "Michi1234".to_owned()).unwrap();
+        let franki_id = repository.create_and_add_user("dliwespf".to_owned(), "Franki".to_owned(), "Franki1234".to_owned()).unwrap();
 
-        Repository {users: Box::new(users), tasks: Box::new(tasks)}
+        repository.score(flori_id, 1);
+        repository.score(flori_id, 1);
+        repository.score(flori_id, 2);
+        repository.score(flori_id, 1);
+        repository.score(flori_id, 4);
+        repository.score(flori_id, 3);
+
+        repository.score(michi_id, 1);
+        repository.score(michi_id, 2);
+        repository.score(michi_id, 3);
+        repository.score(michi_id, 4);
+
+        repository
     }
 
     pub fn get_user<'a>(&'a self, id: u32) -> Option<User> {
-        let userMutex = self.users.iter().find(|user| user.lock().unwrap().id == id);
+        let users_guard = self.users.lock().unwrap();
+        let userMutex = users_guard.iter().find(|user| user.lock().unwrap().id == id);
         match userMutex {
             Some(userMut) => Some(userMut.lock().unwrap().clone()),
             _ => None
@@ -49,7 +49,7 @@ impl Repository {
     }
 
     pub fn get_all_users<'a>(&'a self) -> Vec<User> {
-        self.users.iter().map(|user_mutex| user_mutex.lock().unwrap().clone()).collect()
+        self.users.lock().unwrap().iter().map(|user_mutex| user_mutex.lock().unwrap().clone()).collect()
     }
 
     pub fn get_task<'a>(&'a self, id: u32) -> Option<&'a Task> {
@@ -61,7 +61,8 @@ impl Repository {
     }
 
     pub fn score<'a>(&'a self, user_id: u32, task_id: u32) -> Result<u16, String> {
-        let user_opt = self.users.iter().find(|user| user.lock().unwrap().id == user_id);
+        let users_guard = self.users.lock().unwrap();
+        let user_opt = users_guard.iter().find(|user| user.lock().unwrap().id == user_id);
         let user_mutex = user_opt.ok_or("User does not exist")?;
         let mut user = user_mutex.lock().unwrap();
 
@@ -71,5 +72,27 @@ impl Repository {
         user.score_task(task.clone());
 
         Ok(user.points)
+    }
+
+    pub fn create_and_add_user<'a>(&'a self, username: String, display_name: String, password: String) -> Result<u32, String> {
+
+        let mut user = User::new(0, username, display_name);
+        user.set_password(password);
+
+        self.add_user(user)
+    }
+
+    pub fn add_user<'a>(&'a self, mut user: User) -> Result<u32, String> {
+        let mut users_vec = self.users.lock().unwrap();
+
+        if users_vec.iter().any(|u| u.lock().unwrap().username.eq(&user.username)) {
+            return Err("Username is not available".to_owned());
+        }
+
+        let new_id = users_vec.iter().map(|u| u.lock().unwrap().id).max().unwrap_or(0) + 1;
+        user.id = new_id;
+        users_vec.push(Arc::new(Mutex::new(user)));
+
+        Ok(new_id)
     }
 }

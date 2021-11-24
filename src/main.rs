@@ -1,6 +1,7 @@
 
 use model::tasks::Task;
 use repository::Repository;
+use rocket::response::status::Conflict;
 use rocket::serde::json::Json;
 use rocket::State;
 
@@ -25,6 +26,15 @@ fn get_user<'a>(id: u32, repository: &'a State<Repository>) -> Json<Option<User>
 #[get("/user/all")]
 fn get_all_users<'a>(repository: &'a State<Repository>) -> Json<Vec<User>> {
     Json(repository.get_all_users())
+}
+
+#[post("/user")]
+fn add_user<'a>(user: User, repository: &'a State<Repository>) -> Result<Json<u32>, Conflict<String>> {
+    let add_result = repository.add_user(user);
+    match add_result {
+        Ok(id) => Ok(Json(id)),
+        Err(message) => Err(Conflict(Some(message)))
+    }
 }
 
 #[get("/task/<id>")]
@@ -54,7 +64,7 @@ async fn main() {
     let _ = rocket::build()
 
     .manage(Repository::init_repository())
-    .mount(context_root, routes![hello, get_user, get_all_users, get_task, get_all_tasks, score])
+    .mount(context_root, routes![hello, get_user, get_all_users, get_task, get_all_tasks, score, add_user])
     .register(context_root, catchers![not_found])
     .launch()
     .await;
