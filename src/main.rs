@@ -9,7 +9,6 @@ mod model;
 mod repository;
 
 use model::users::*;
-use repository::*;
 
 #[macro_use] extern crate rocket;
 
