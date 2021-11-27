@@ -1,5 +1,7 @@
 
-use model::tasks::Task;
+use model::{Session, User};
+use model::session::LoginRequest;
+use model::task::Task;
 use repository::Repository;
 use rocket::response::status::Conflict;
 use rocket::serde::json::Json;
@@ -7,8 +9,6 @@ use rocket::State;
 
 mod model;
 mod repository;
-
-use model::users::*;
 
 #[macro_use] extern crate rocket;
 
@@ -51,6 +51,21 @@ fn score<'a>(user_id: u32, task_id: u32, repository: &'a State<Repository>) -> J
     Json(repository.score(user_id, task_id))
 }
 
+#[post("/session/login")]
+fn login<'a>(login_request: LoginRequest, repository: &'a State<Repository>) -> Json<Result<Session, String>> {
+    Json(repository.login(login_request))
+}
+
+#[get("/session/<session_id>")]
+fn get_session<'a>(session_id: String, repository: &'a State<Repository>) -> Json<Option<Session>> {
+    Json(repository.get_session(&session_id))
+}
+
+#[delete("/session/logout/<session_id>")]
+fn logout<'a>(session_id: String, repository: &'a State<Repository>) -> Json<Result<(), String>> {
+    Json(repository.logout(&session_id))
+}
+
 #[catch(404)]
 fn not_found() -> Json<&'static str> {
     Json("Route not found")
@@ -63,7 +78,7 @@ async fn main() {
     let _ = rocket::build()
 
     .manage(Repository::init_repository())
-    .mount(context_root, routes![hello, get_user, get_all_users, get_task, get_all_tasks, score, add_user])
+    .mount(context_root, routes![hello, get_user, get_all_users, get_task, get_all_tasks, score, add_user, login, get_session, logout])
     .register(context_root, catchers![not_found])
     .launch()
     .await;

@@ -1,8 +1,13 @@
-use crate::model::{tasks::*, users::{*, self}};
+
 use std::{ops::Add, sync::{Mutex, Arc}};
+
+use rocket::fairing::Result;
+
+use crate::model::{Session, Task, User, session::{self, LoginRequest}, user};
 
 pub struct Repository {
     users: Arc<Mutex<Vec<Arc<Mutex<User>>>>>,
+    sessions: Arc<Mutex<Vec<Arc<Mutex<Session>>>>>,
     tasks: Box<Vec<Task>>
 }
 
@@ -11,6 +16,8 @@ impl Repository {
 
         let mut users = vec![];
 
+        let mut sessions = vec![];
+
         let tasks = vec![
             Task { id: 1, name: "Blumen gießen".to_owned(), points: 10, enabled: true},
             Task { id: 2, name: "Stunden abgeben".to_owned(), points: 30, enabled: false},
@@ -18,7 +25,10 @@ impl Repository {
             Task { id: 4, name: "Kaffee kochen".to_owned(), points: 75, enabled: true},
         ];
 
-        let mut repository = Repository {users: Arc::new(Mutex::new(users)), tasks: Box::new(tasks)};
+        let mut repository = Repository {
+            users: Arc::new(Mutex::new(users)),
+            sessions: Arc::new(Mutex::new(sessions)),
+            tasks: Box::new(tasks)};
 
         let flori_id = repository.create_and_add_user("roterkohl".to_owned(), "Flori".to_owned(), "Flori1234".to_owned()).unwrap();
         let michi_id = repository.create_and_add_user("brutours.de".to_owned(), "Michi".to_owned(), "Michi1234".to_owned()).unwrap();
@@ -41,11 +51,12 @@ impl Repository {
 
     pub fn get_user<'a>(&'a self, id: u32) -> Option<User> {
         let users_guard = self.users.lock().unwrap();
-        let userMutex = users_guard.iter().find(|user| user.lock().unwrap().id == id);
-        match userMutex {
-            Some(userMut) => Some(userMut.lock().unwrap().clone()),
-            _ => None
-        }
+        users_guard.iter().find(|user| user.lock().unwrap().id == id).and_then(|u| Some(u.lock().unwrap().clone()))
+    }
+    
+    fn find_user_by_username<'a>(&'a self, username: &String) -> Option<Arc<Mutex<User>>> {
+        let users_guard = self.users.lock().unwrap();
+        users_guard.iter().find(|user| user.lock().unwrap().username.eq(username)).and_then(|f| Some(f.clone()))
     }
 
     pub fn get_all_users<'a>(&'a self) -> Vec<User> {
@@ -58,6 +69,15 @@ impl Repository {
 
     pub fn get_all_tasks<'a>(&'a self) -> &'a Vec<Task> {
         &self.tasks
+    }
+    
+    fn find_session<'a>(&'a self, session_id: &String) -> Option<Arc<Mutex<Session>>> {
+        self.sessions.lock().unwrap().iter().find(|session| session.lock().unwrap().id.eq(session_id))
+            .and_then(|f| Some(f.clone()))
+    }
+
+    pub fn get_session<'a>(&'a self, session_id: &String) -> Option<Session> {
+        self.find_session(session_id).and_then(|s| Some(s.lock().unwrap().clone()))
     }
 
     pub fn score<'a>(&'a self, user_id: u32, task_id: u32) -> Result<u16, String> {
@@ -75,6 +95,9 @@ impl Repository {
     }
 
     pub fn create_and_add_user<'a>(&'a self, username: String, display_name: String, password: String) -> Result<u32, String> {
+        if self.find_user_by_username(&username).is_some() {
+            return Err("Username is not available".to_owned());
+        }
 
         let mut user = User::new(0, username, display_name);
         user.set_password(password);
@@ -94,5 +117,31 @@ impl Repository {
         users_vec.push(Arc::new(Mutex::new(user)));
 
         Ok(new_id)
+    }
+
+    pub fn login(&self, login_request: LoginRequest) -> Result<Session, String> {
+        let username = login_request.username.to_owned();
+        let user_opt = self.find_user_by_username(&username);
+        let user = user_opt.ok_or("User does not exist")?;
+
+        if user.lock().unwrap().verify_password(login_request.password) {
+            let session = Session::new(Arc::clone(&user));
+
+            let mut sessions = self.sessions.lock().unwrap();
+            sessions.push(Arc::new(Mutex::new(session.clone())));
+
+            Ok(session)
+        } else {
+            Err("Password mismatch".to_owned())
+        }
+    }
+
+    pub fn logout(&self, session_id: &String) -> Result<(), String> {
+        let mut sessions = self.sessions.lock().unwrap();
+        let index = sessions.iter().position(|x| &x.lock().unwrap().clone().id == session_id)
+        .ok_or("Session unknown".to_owned())?;
+        sessions.remove(index);
+
+        Ok(())
     }
 }
