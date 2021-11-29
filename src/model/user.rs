@@ -13,6 +13,8 @@ pub struct User {
     pub username: String,
     pub display_name: String,
     pub points: u16,
+    
+    #[serde(skip_serializing)]
     pub scores: Vec<Score>,
     
     #[serde(skip_serializing)]

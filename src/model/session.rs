@@ -1,7 +1,9 @@
 use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, Utc};
-use rocket::{Request, request::Outcome, http::Status, request::FromRequest};
+use rocket::{Request, State, http::Status, request::FromRequest, request::Outcome};
+
+use crate::repository::Repository;
 
 use super::User;
 use rand::Rng;
@@ -40,6 +42,40 @@ impl Session {
             .collect();
 
         session_id
+    }
+
+    fn refresh(&mut self) {
+        self.refreshed = Utc::now();
+    }
+}
+
+#[async_trait]
+impl <'a> FromRequest<'a> for Session {
+    type Error = String;
+
+    async fn from_request(request: &'a Request<'_>) -> Outcome<Self, Self::Error> {
+        let repository = request.rocket().state::<Repository>();
+        if repository.is_none() {
+            return Outcome::Failure((Status::InternalServerError, "Missing status".to_owned()))
+        }
+        let repository = repository.unwrap();
+        
+        let cookie = request.cookies()
+            .get("sid");
+        if cookie.is_none() {
+            return Outcome::Failure((Status::BadRequest, "No session provided".to_owned()))
+        }
+        let cookie = cookie.unwrap();
+
+        let sid = cookie.value().to_owned();
+        let session = repository.get_session(&sid);
+        if session.is_none() {
+            return Outcome::Failure((Status::Unauthorized, "Session not available".to_owned()))
+        }
+
+        let mut session = session.unwrap();
+        session.refresh();
+        Outcome::Success(session)
     }
 }
 
