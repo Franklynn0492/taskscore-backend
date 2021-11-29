@@ -110,6 +110,7 @@ impl Repository {
         if !user_mutex_guard.is_admin {
             MessageResponder::create_with_message(Status::Forbidden, "You are not an admin".to_owned())
         } else {
+            drop(user_mutex_guard);
             match self.add_user_private(user) {
                 Ok(user_id) => MessageResponder::create_ok(user_id),
                 Err(text) => MessageResponder::create_with_message(Status::Conflict, text)

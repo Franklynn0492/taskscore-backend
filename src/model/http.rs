@@ -1,6 +1,6 @@
 use std::io::Cursor;
 
-use rocket::{Request, Response, http::{Header, Status}, response::Responder, tokio::io::AsyncRead};
+use rocket::{Request, Response, http::{Header, Status}, response::Responder};
 
 
 
@@ -16,7 +16,7 @@ impl <A> MessageResponder<A> where A: ToString {
     }
 
     pub fn create_with_message(status: Status, message: String) -> MessageResponder<A> {
-        MessageResponder{ content: None, message: Some(message), status: Status::Ok }
+        MessageResponder{ content: None, message: Some(message), status }
     }
 
     pub fn create_ok(content: A) -> MessageResponder<A> {
