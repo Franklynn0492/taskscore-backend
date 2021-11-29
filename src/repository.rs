@@ -1,9 +1,9 @@
 
 use std::{ops::Add, sync::{Mutex, Arc}};
 
-use rocket::fairing::Result;
+use rocket::{data::Outcome, fairing::Result, http::Status};
 
-use crate::model::{Session, Task, User, session::{self, LoginRequest}, user};
+use crate::model::{MessageResponder, Session, Task, User, session::{self, LoginRequest}, user};
 
 pub struct Repository {
     users: Arc<Mutex<Vec<Arc<Mutex<User>>>>>,
@@ -30,9 +30,9 @@ impl Repository {
             sessions: Arc::new(Mutex::new(sessions)),
             tasks: Box::new(tasks)};
 
-        let flori_id = repository.create_and_add_user("roterkohl".to_owned(), "Flori".to_owned(), "Flori1234".to_owned()).unwrap();
-        let michi_id = repository.create_and_add_user("brutours.de".to_owned(), "Michi".to_owned(), "Michi1234".to_owned()).unwrap();
-        let franki_id = repository.create_and_add_user("dliwespf".to_owned(), "Franki".to_owned(), "Franki1234".to_owned()).unwrap();
+        let flori_id = repository.create_and_add_user("roterkohl".to_owned(), "Flori".to_owned(), "Flori1234".to_owned(), true).unwrap();
+        let michi_id = repository.create_and_add_user("brutours.de".to_owned(), "Michi".to_owned(), "Michi1234".to_owned(), false).unwrap();
+        let franki_id = repository.create_and_add_user("dliwespf".to_owned(), "Franki".to_owned(), "Franki1234".to_owned(), false).unwrap();
 
         repository.score(flori_id, 1);
         repository.score(flori_id, 1);
@@ -94,18 +94,30 @@ impl Repository {
         Ok(user.points)
     }
 
-    pub fn create_and_add_user<'a>(&'a self, username: String, display_name: String, password: String) -> Result<u32, String> {
+    pub fn create_and_add_user<'a>(&'a self, username: String, display_name: String, password: String, is_admin: bool) -> Result<u32, String> {
         if self.find_user_by_username(&username).is_some() {
             return Err("Username is not available".to_owned());
         }
 
-        let mut user = User::new(0, username, display_name);
+        let mut user = User::new(0, username, display_name, is_admin);
         user.set_password(password);
 
-        self.add_user(user)
+        self.add_user_private(user)
     }
 
-    pub fn add_user<'a>(&'a self, mut user: User) -> Result<u32, String> {
+    pub fn add_user<'a>(&'a self, session: &Session, mut user: User) -> MessageResponder<u32> {
+        let user_mutex_guard = session.user.lock().unwrap();
+        if !user_mutex_guard.is_admin {
+            MessageResponder::create_with_message(Status::Forbidden, "You are not an admin".to_owned())
+        } else {
+            match self.add_user_private(user) {
+                Ok(user_id) => MessageResponder::create_ok(user_id),
+                Err(text) => MessageResponder::create_with_message(Status::Conflict, text)
+            }
+        }
+    }
+
+    fn add_user_private<'a>(&'a self, mut user: User) -> Result<u32, String> {
         let mut users_vec = self.users.lock().unwrap();
 
         if users_vec.iter().any(|u| u.lock().unwrap().username.eq(&user.username)) {

@@ -1,9 +1,10 @@
 
 
-use model::{Score, Session, User};
+use model::{MessageResponder, Score, Session, User};
 use model::session::LoginRequest;
 use model::task::Task;
 use repository::Repository;
+use rocket::data::Outcome;
 use rocket::response::status::Conflict;
 use rocket::serde::json::Json;
 use rocket::State;
@@ -36,12 +37,8 @@ fn get_all_users<'a>(repository: &'a State<Repository>) -> Json<Vec<User>> {
 }
 
 #[post("/user")]
-fn add_user<'a>(user: User, repository: &'a State<Repository>) -> Result<Json<u32>, Conflict<String>> {
-    let add_result = repository.add_user(user);
-    match add_result {
-        Ok(id) => Ok(Json(id)),
-        Err(message) => Err(Conflict(Some(message)))
-    }
+fn add_user<'a>(session: Session, user: User, repository: &'a State<Repository>) -> MessageResponder<u32> {
+    repository.add_user(&session, user)
 }
 
 #[get("/task/<id>")]

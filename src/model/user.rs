@@ -12,6 +12,7 @@ pub struct User {
     pub id: u32,
     pub username: String,
     pub display_name: String,
+    pub is_admin: bool,
     pub points: u16,
     
     #[serde(skip_serializing)]
@@ -22,8 +23,8 @@ pub struct User {
 }
 
 impl User {
-    pub fn new(id: u32, username: String, display_name: String) -> User {
-        User {id, username: username, display_name: display_name, points: 0, scores: vec![], pwd_hash_components: None}
+    pub fn new(id: u32, username: String, display_name: String, is_admin: bool) -> User {
+        User {id, username: username, display_name: display_name, points: 0, scores: vec![], pwd_hash_components: None, is_admin}
     }
 
     pub fn score_task<'a>(& mut self, task: Task) {
@@ -58,7 +59,7 @@ impl <'a> FromRequest<'a> for User {
         let password_opt = request.headers().get_one("password");
         match username_opt {
             Some(username) => {
-                let mut new_user = User::new(0, username.to_owned(), display_name_opt.unwrap_or(username).to_owned());
+                let mut new_user = User::new(0, username.to_owned(), display_name_opt.unwrap_or(username).to_owned(), false);
                 if password_opt.is_some() {
                     new_user.set_password(password_opt.unwrap().to_owned());
                 }
