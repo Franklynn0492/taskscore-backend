@@ -1,8 +1,10 @@
 
-use std::convert::TryFrom;
+use std::{convert::TryFrom, sync::{Arc, Mutex}, collections::HashSet, hash::Hash, ops::RangeBounds};
 
-use bcrypt::{DEFAULT_COST, hash, verify};
-use rocket::{Request, request::Outcome, http::Status, request::{ FromRequest}};
+use bcrypt::{DEFAULT_COST};
+use rocket::{Request, request::Outcome, http::Status, request::{ FromRequest}, State};
+
+use crate::repository::Repository;
 
 use super::{Task, Score};
 
@@ -68,5 +70,88 @@ impl <'a> FromRequest<'a> for User {
             },
             None => Outcome::Failure((Status::BadRequest, "Username is required".to_owned()))
         }
+    }
+}
+
+impl PartialEq for User {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl Eq for User {
+    //fn assert_receiver_is_total_eq(&self) {}
+}
+
+impl Hash for User {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+        self.username.hash(state);
+        self.display_name.hash(state);
+        self.is_admin.hash(state);
+    }
+}
+
+#[derive(Clone)]
+#[derive(serde::Serialize)]
+struct Team {
+    name: String,
+    manager: Arc<User>,
+    members: HashSet<Arc<User>>,
+}
+
+impl Team {
+    pub fn new(name: String, manager: Arc<User>) -> Team {
+        let mut members = HashSet::new();
+        members.insert(manager.clone());
+        Team{name, manager: manager.clone(), members}
+    }
+
+    pub fn add_user(&mut self, new_user: &Arc<User>, authority: &User) -> Result<(), String> {
+        if self.members.contains(new_user) {
+            return Err(format!("User '{}' is already member of group '{}'", new_user.username, self.name));
+        }
+
+        if *self.manager != *authority && !authority.is_admin {
+            return Err(format!("User '{}' is not authorized to add users to group '{}'", authority.username, self.name));
+        }
+
+        self.members.insert(new_user.clone());
+
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl <'a> FromRequest<'a> for Team {
+    type Error = String;
+
+    async fn from_request(request: &'a Request<'_>) -> Outcome<Self, Self::Error> {
+        let teamname_opt = request.headers().get_one("teamname");//.ok_or("Team name is required")?;
+        let user_id_opt = request.headers().get_one("userid");
+        let state = request.rocket().state::<Repository>().unwrap();
+
+        if teamname_opt.is_none() {
+            return Outcome::Failure((Status::BadRequest, "Team name is required".to_owned()));
+        }
+
+        if user_id_opt.is_none() {
+            return Outcome::Failure((Status::BadRequest, "UserId is required".to_owned()));
+        }
+
+        let user_id = user_id_opt.unwrap();
+        let user_id_parsed = str::parse::<u32>(user_id_opt.unwrap());
+        if user_id_parsed.is_err() {
+            return Outcome::Failure((Status::BadRequest, format!("'{}' is not a valid user id", user_id)));
+        }
+
+        let user_id = user_id_parsed.unwrap();
+        let manager_opt = state.get_user(user_id);
+
+        if manager_opt.is_none() {
+            return Outcome::Failure((Status::NotFound, format!("UserId '{}' is unknown", user_id)));
+        }
+
+        Outcome::Success(Team::new(teamname_opt.unwrap().to_owned(), Arc::new(manager_opt.unwrap())))
     }
 }
