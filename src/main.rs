@@ -4,8 +4,6 @@ use model::{MessageResponder, Score, Session, User};
 use model::session::LoginRequest;
 use model::task::Task;
 use repository::Repository;
-use rocket::data::Outcome;
-use rocket::response::status::Conflict;
 use rocket::serde::json::Json;
 use rocket::State;
 use rocket::http::{Cookie, CookieJar};
@@ -42,12 +40,12 @@ fn add_user<'a>(session: Session, user: User, repository: &'a State<Repository>)
 }
 
 #[get("/task/<id>")]
-fn get_task<'a>(id: u32, repository: &'a State<Repository>) -> Json<Option<&'a Task>> {
+fn get_task<'a>(id: u32, repository: &'a State<Repository>) -> Json<Option<Task>> {
     Json(repository.get_task(id))
 }
 
 #[get("/task/all")]
-fn get_all_tasks<'a>(repository: &'a State<Repository>) -> Json<&'a Vec<Task>> {
+fn get_all_tasks<'a>(repository: &'a State<Repository>) -> Json<Vec<Task>> {
     Json(repository.get_all_tasks())
 }
 

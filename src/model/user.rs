@@ -1,5 +1,5 @@
 
-use std::{convert::TryFrom, sync::{Arc, Mutex}, collections::HashSet, hash::Hash, ops::RangeBounds};
+use std::{convert::TryFrom, sync::{Arc, Mutex}, hash::Hash, ops::RangeBounds, collections::HashSet};
 
 use bcrypt::{DEFAULT_COST};
 use rocket::{Request, request::Outcome, http::Status, request::{ FromRequest}, State};
@@ -94,31 +94,39 @@ impl Hash for User {
 
 #[derive(Clone)]
 #[derive(serde::Serialize)]
-struct Team {
+pub struct Team {
     name: String,
-    manager: Arc<User>,
-    members: HashSet<Arc<User>>,
+    manager_id: u32,
+    members: Vec<Arc<Mutex<User>>>,
+    member_ids: HashSet::<u32>,
 }
 
 impl Team {
-    pub fn new(name: String, manager: Arc<User>) -> Team {
-        let mut members = HashSet::new();
-        members.insert(manager.clone());
-        Team{name, manager: manager.clone(), members}
+    pub fn new(name: String, manager: Arc<Mutex<User>>) -> Team {
+        let mut members = vec![manager.clone()];
+        let mut member_ids = HashSet::new();
+        member_ids.insert(manager.lock().unwrap().id);
+        Team{name, manager_id: manager.lock().unwrap().id, members, member_ids}
     }
 
-    pub fn add_user(&mut self, new_user: &Arc<User>, authority: &User) -> Result<(), String> {
-        if self.members.contains(new_user) {
-            return Err(format!("User '{}' is already member of group '{}'", new_user.username, self.name));
+    pub fn add_user(&mut self, new_user: Arc<Mutex<User>>, authority: &User) -> Result<(), String> {
+        let new_user_locked = new_user.lock().unwrap();
+        if self.contains(&new_user_locked) {
+            return Err(format!("User '{}' is already member of group '{}'", new_user_locked.username, self.name));
         }
 
-        if *self.manager != *authority && !authority.is_admin {
+        if self.manager_id != authority.id && !authority.is_admin {
             return Err(format!("User '{}' is not authorized to add users to group '{}'", authority.username, self.name));
         }
 
-        self.members.insert(new_user.clone());
+        self.member_ids.insert(new_user_locked.id);
+        self.members.push(new_user.clone());
 
         Ok(())
+    }
+
+    pub fn contains(&self, user: &User) -> bool {
+        self.member_ids.contains(&user.id)
     }
 }
 
@@ -152,6 +160,6 @@ impl <'a> FromRequest<'a> for Team {
             return Outcome::Failure((Status::NotFound, format!("UserId '{}' is unknown", user_id)));
         }
 
-        Outcome::Success(Team::new(teamname_opt.unwrap().to_owned(), Arc::new(manager_opt.unwrap())))
+        Outcome::Success(Team::new(teamname_opt.unwrap().to_owned(), Arc::new(Mutex::new(manager_opt.unwrap()))))
     }
 }
