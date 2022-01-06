@@ -1,5 +1,5 @@
 
-use std::{ops::Add, sync::{Mutex, Arc}};
+use std::{ops::Add, sync::{Mutex, Arc}, fmt};
 
 use rocket::{data::Outcome, fairing::Result, http::Status};
 
@@ -120,6 +120,17 @@ impl Repository {
 
     pub fn add_team<'a>(&'a self, team: Team) {
         self.teams.lock().unwrap().push(Arc::new(Mutex::new(team)));
+    }
+
+    pub fn add_user_to_team<'a>(&'a self, team_name: &String, user_id: u32, manager: User) -> Result<(), String> {
+        let teams_locked = self.teams.lock().unwrap();
+        let users_locked = self.users.lock().unwrap();
+
+        let team = teams_locked.iter().find(|t| t.lock().unwrap().name == *team_name).ok_or(format!("Team with name '{}'does not exist", team_name))?;
+        let user = users_locked.iter().find(|u| u.lock().unwrap().id == user_id).ok_or(format!("User with id {} does not exist", user_id))?;
+        let mut team_locked = team.lock().unwrap();
+        
+        team_locked.add_user(user.clone(), &manager)
     }
 
     pub fn add_user<'a>(&'a self, session: &Session, mut user: User) -> MessageResponder<u32> {

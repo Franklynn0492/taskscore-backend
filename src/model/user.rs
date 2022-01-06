@@ -95,10 +95,10 @@ impl Hash for User {
 #[derive(Clone)]
 #[derive(serde::Serialize)]
 pub struct Team {
-    name: String,
-    manager_id: u32,
-    members: Vec<Arc<Mutex<User>>>,
-    member_ids: HashSet::<u32>,
+    pub name: String,
+    pub manager_id: u32,
+    pub members: Vec<Arc<Mutex<User>>>,
+    pub member_ids: HashSet::<u32>,
 }
 
 impl Team {
