@@ -36,15 +36,18 @@ impl Repository {
         let flori = repository.create_and_add_user("roterkohl".to_owned(), "Flori".to_owned(), "Flori1234".to_owned(), true).unwrap();
         let michi = repository.create_and_add_user("brutours.de".to_owned(), "Michi".to_owned(), "Michi1234".to_owned(), false).unwrap();
         let franki = repository.create_and_add_user("dliwespf".to_owned(), "Franki".to_owned(), "Franki1234".to_owned(), false).unwrap();
+        let topheri = repository.create_and_add_user("topher".to_owned(), "Topher".to_owned(), "Topheri1234".to_owned(), true).unwrap();
 
         let mut team_babes = Team::new("Babes".to_owned(), flori.clone());
         let mut team_church = Team::new("Church".to_owned(), michi.clone());
         team_church.add_user(franki.clone(), &michi.lock().unwrap());
         team_church.add_user(flori.clone(), &michi.lock().unwrap());
+        team_church.add_user(topheri.clone(), &michi.lock().unwrap());
 
         let flori_id = flori.lock().unwrap().id;
         let michi_id = michi.lock().unwrap().id;
         let franki_id = franki.lock().unwrap().id;
+        let topheri_id = topheri.lock().unwrap().id;
 
         repository.score(flori_id, 1);
         repository.score(flori_id, 1);
@@ -57,6 +60,12 @@ impl Repository {
         repository.score(michi_id, 2);
         repository.score(michi_id, 3);
         repository.score(michi_id, 4);
+
+        repository.score(topheri_id, 4);
+        repository.score(topheri_id, 4);
+        repository.score(topheri_id, 4);
+        repository.score(topheri_id, 4);
+        repository.score(topheri_id, 4);
 
         repository
     }
