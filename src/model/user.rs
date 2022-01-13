@@ -1,10 +1,10 @@
 
-use std::{convert::TryFrom, sync::{Arc, Mutex}, hash::Hash, ops::RangeBounds, collections::HashSet};
+use std::{sync::{Arc, Mutex}, hash::Hash, collections::HashSet};
 
 use bcrypt::{DEFAULT_COST};
-use rocket::{Request, request::Outcome, http::Status, request::{ FromRequest}, State};
+use rocket::{Request, request::Outcome, http::Status, request::{ FromRequest}};
 
-use crate::repository::Repository;
+use crate::repository::repository::Repository;
 
 use super::{Task, Score};
 
@@ -103,7 +103,7 @@ pub struct Team {
 
 impl Team {
     pub fn new(name: String, manager: Arc<Mutex<User>>) -> Team {
-        let mut members = vec![manager.clone()];
+        let members = vec![manager.clone()];
         let mut member_ids = HashSet::new();
         member_ids.insert(manager.lock().unwrap().id);
         Team{name, manager_id: manager.lock().unwrap().id, members, member_ids}

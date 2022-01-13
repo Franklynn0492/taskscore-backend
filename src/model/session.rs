@@ -1,9 +1,9 @@
 use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, Utc};
-use rocket::{Request, State, http::Status, request::FromRequest, request::Outcome};
+use rocket::{Request, http::Status, request::FromRequest, request::Outcome};
 
-use crate::repository::Repository;
+use crate::repository::repository::Repository;
 
 use super::User;
 use rand::Rng;

@@ -1,9 +1,9 @@
 
-use std::{ops::Add, sync::{Mutex, Arc}, fmt};
+use std::{sync::{Mutex, Arc}};
 
-use rocket::{data::Outcome, fairing::Result, http::Status};
+use rocket::{fairing::Result, http::Status};
 
-use crate::model::{MessageResponder, Session, Task, User, session::{self, LoginRequest}, user::{self, Team}};
+use crate::model::{MessageResponder, Session, Task, User, session::{LoginRequest}, user::{Team}};
 
 pub struct Repository {
     users: Arc<Mutex<Vec<Arc<Mutex<User>>>>>,
@@ -13,11 +13,13 @@ pub struct Repository {
 }
 
 impl Repository {
+
+    #[allow(unused)]
     pub fn init_repository() -> Repository {
 
-        let mut users = vec![];
+        let users = vec![];
 
-        let mut sessions = vec![];
+        let sessions = vec![];
 
         let tasks = vec![
             Task { id: 1, name: "Blumen gießen".to_owned(), points: 10, enabled: true},
@@ -26,7 +28,7 @@ impl Repository {
             Task { id: 4, name: "Kaffee kochen".to_owned(), points: 75, enabled: true},
         ];
 
-        let mut repository = Repository {
+        let repository = Repository {
             users: Arc::new(Mutex::new(users)),
             sessions: Arc::new(Mutex::new(sessions)),
             tasks: Arc::new(Mutex::new(tasks)),
