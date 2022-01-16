@@ -12,6 +12,8 @@ mod repository;
 mod resource;
 
 #[macro_use] extern crate rocket;
+#[macro_use]
+extern crate lazy_static;
 
 #[get("/")]
 fn hello() -> Json<String> {

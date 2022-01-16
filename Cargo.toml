@@ -20,6 +20,7 @@ serde_json = "1.0"
 serde = {version ="1.0", features = ["derive", "rc"]}
 async-trait = "0.1.50"
 chrono = { version = "0.4", features = ["serde"] }
+lazy_static = "1.4.0"
 
 [dependencies.rocket]
 tag = "v0.5.0-rc.1"

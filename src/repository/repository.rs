@@ -191,10 +191,105 @@ impl Repository {
 
     pub fn logout(&self, session_id: &String) -> Result<(), String> {
         let mut sessions = self.sessions.lock().unwrap();
-        let index = sessions.iter().position(|x| &x.lock().unwrap().clone().id == session_id)
-        .ok_or("Session unknown".to_owned())?;
+        let index = sessions.iter().position(|x| &x.lock().unwrap().clone().id == session_id).ok_or("Session unknown".to_owned())?;
         sessions.remove(index);
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Once;
+
+    use crate::model::{Session, session::LoginRequest, User};
+
+    use super::Repository;
+
+    lazy_static! {
+        static ref REPOSITORY: Repository = Repository::init_repository();
+        static ref ADMIN_SESSION: Session = REPOSITORY.login(LoginRequest{username: "roterkohl", password: Some("Flori1234")}).unwrap();
+    }
+    
+    #[test]
+    fn test_get_user_exists() {
+        let exists_opt = REPOSITORY.get_user(1);
+        assert!(exists_opt.is_some());
+        assert!(exists_opt.unwrap().id == 1);
+    }
+
+    #[test]
+    fn test_get_user_does_not_exist() {
+        let does_not_exist_opt = REPOSITORY.get_user(10);
+        assert!(does_not_exist_opt.is_none());
+    }
+
+    #[test]
+    fn test_find_user_by_username_exists() {
+        let result = REPOSITORY.find_user_by_username(&"topher".to_owned());
+        assert!(result.is_some());
+        let user_result = result.unwrap();
+        let user = user_result.lock().unwrap();
+        assert!(user.id == 4);
+    }
+
+    #[test]
+    fn test_find_user_by_username_does_not_exist() {
+        let result = REPOSITORY.find_user_by_username(&"eduardLaser".to_owned());
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_get_all_users() {
+    }
+
+    #[test]
+    fn test_get_task() {
+    }
+
+    #[test]
+    fn test_get_all_tasks() {
+    }
+
+    #[test]
+    fn test_find_session() {
+    }
+
+    #[test]
+    fn test_get_session() {
+    }
+
+    #[test]
+    fn test_score() {
+    }
+
+    #[test]
+    fn test_create_and_add_user() {
+    }
+
+    #[test]
+    fn test_add_team() {
+    }
+
+    #[test]
+    fn test_add_user_to_team() {
+    }
+
+    #[test]
+    fn test_add_user() {
+        let newbie = User::new(0, "newbie".to_owned(), "Newbie".to_owned(), false);
+        let result = REPOSITORY.add_user(&ADMIN_SESSION, newbie).content;
+        let new_user_id = result.unwrap();
+        assert!(result.is_some());
+        let new_user_result = REPOSITORY.get_user(new_user_id);
+        assert!(new_user_result.is_some());
+    }
+
+    #[test]
+    fn test_login() {
+    }
+
+    #[test]
+    fn test_logout() {
     }
 }

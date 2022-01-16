@@ -5,7 +5,7 @@ use rocket::{Request, Response, http::{Header, Status}, response::Responder};
 
 
 pub struct MessageResponder<A> where A: ToString {
-    content: Option<A>,
+    pub content: Option<A>,
     message: Option<String>,
     status: Status
 }
