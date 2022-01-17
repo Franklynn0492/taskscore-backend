@@ -95,6 +95,7 @@ impl Hash for User {
 #[derive(Clone)]
 #[derive(serde::Serialize)]
 pub struct Team {
+    pub id: u32,
     pub name: String,
     pub manager_id: u32,
     pub members: Vec<Arc<Mutex<User>>>,
@@ -102,11 +103,11 @@ pub struct Team {
 }
 
 impl Team {
-    pub fn new(name: String, manager: Arc<Mutex<User>>) -> Team {
+    pub fn new(id: u32, name: String, manager: Arc<Mutex<User>>) -> Team {
         let members = vec![manager.clone()];
         let mut member_ids = HashSet::new();
         member_ids.insert(manager.lock().unwrap().id);
-        Team{name, manager_id: manager.lock().unwrap().id, members, member_ids}
+        Team { id, name, manager_id: manager.lock().unwrap().id, members, member_ids }
     }
 
     pub fn add_user(&mut self, new_user: Arc<Mutex<User>>, authority: &User) -> Result<(), String> {
@@ -160,6 +161,6 @@ impl <'a> FromRequest<'a> for Team {
             return Outcome::Failure((Status::NotFound, format!("UserId '{}' is unknown", user_id)));
         }
 
-        Outcome::Success(Team::new(teamname_opt.unwrap().to_owned(), Arc::new(Mutex::new(manager_opt.unwrap()))))
+        Outcome::Success(Team::new(0, teamname_opt.unwrap().to_owned(), Arc::new(Mutex::new(manager_opt.unwrap()))))
     }
 }

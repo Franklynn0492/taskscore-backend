@@ -12,6 +12,8 @@ mod repository;
 mod resource;
 
 #[macro_use] extern crate rocket;
+
+#[cfg(test)]
 #[macro_use]
 extern crate lazy_static;
 
