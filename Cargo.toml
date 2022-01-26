@@ -20,6 +20,7 @@ serde_json = "1.0"      # JSON (de-)serialization
 serde = {version ="1.0", features = ["derive", "rc"]}   # general (de-) serialzation
 async-trait = "0.1.50"  # Asynchronous programming
 chrono = { version = "0.4", features = ["serde"] }  # Timestamp (de-)serialization
+dotenv = "0.15.0"       # Environment configuration handling
 
 [dev-dependencies]
 lazy_static = "1.4.0"   # Lazy global value initialization
