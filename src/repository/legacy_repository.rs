@@ -1,3 +1,10 @@
+
+use std::{sync::{Mutex, Arc}};
+
+use rocket::{fairing::Result, http::Status};
+
+use crate::model::{MessageResponder, Session, Task, User, session::{LoginRequest}, user::{Team}};
+
 pub struct Repository {
     users: Arc<Mutex<Vec<Arc<Mutex<User>>>>>,
     sessions: Arc<Mutex<Vec<Arc<Mutex<Session>>>>>,
@@ -213,5 +220,193 @@ impl Repository {
         sessions.remove(index);
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::{Arc, Mutex};
+
+    use crate::model::{Session, session::LoginRequest, User, user::Team};
+
+    use super::Repository;
+
+    lazy_static! {
+        static ref REPOSITORY: Repository = Repository::init_repository();
+        static ref ADMIN_SESSION: Session = REPOSITORY.login(LoginRequest{username: "roterkohl", password: Some("Flori1234")}).unwrap();
+        static ref USER_SESSION: Session = REPOSITORY.login(LoginRequest{username: "dliwespf", password: Some("Franki1234")}).unwrap();
+    }
+    
+    #[test]
+    fn test_get_user_exists() {
+        let exists_opt = REPOSITORY.get_user(1);
+        assert!(exists_opt.is_some());
+        assert_eq!(1, exists_opt.unwrap().id);
+    }
+
+    #[test]
+    fn test_get_user_does_not_exist() {
+        let does_not_exist_opt = REPOSITORY.get_user(10);
+        assert!(does_not_exist_opt.is_none());
+    }
+
+    #[test]
+    fn test_find_user_by_username_exists() {
+        let result = REPOSITORY.find_user_by_username(&"topher".to_owned());
+        assert!(result.is_some());
+        let user_result = result.unwrap();
+        let user = user_result.lock().unwrap();
+        assert_eq!(4, user.id);
+    }
+
+    #[test]
+    fn test_find_user_by_username_does_not_exist() {
+        let result = REPOSITORY.find_user_by_username(&"eduardLaser".to_owned());
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_get_all_users() {
+        let result = Repository::init_repository().get_all_users();
+        assert_eq!(4, result.len());
+    }
+
+    #[test]
+    fn test_get_task_exists() {
+        let exists_opt = REPOSITORY.get_task(1);
+        assert!(exists_opt.is_some());
+        assert_eq!(1, exists_opt.unwrap().id);
+    }
+
+    #[test]
+    fn test_get_task_does_not_exist() {
+        let does_not_exist_opt = REPOSITORY.get_task(4711);
+        assert!(does_not_exist_opt.is_none());
+    }
+
+    #[test]
+    fn test_get_all_tasks() {
+        let result = Repository::init_repository().get_all_tasks();
+        assert_eq!(4, result.len());
+    }
+
+    #[test]
+    fn test_find_session_exists() {
+        let result = REPOSITORY.find_session(&ADMIN_SESSION.id);
+        assert!(result.is_some());
+        assert_eq!(ADMIN_SESSION.id, result.unwrap().lock().unwrap().id);
+    }
+
+    #[test]
+    fn test_get_session_does_not_exist() {
+        let result = REPOSITORY.find_session(&"&ADMIN_SESSION.id".to_owned());
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_score_ok() {
+        let result = REPOSITORY.score(4, 4);
+        assert!(result.is_ok());
+        assert_eq!(450, result.unwrap());
+    }
+
+    #[test]
+    fn test_score_user_does_not_exist() {
+        let result = REPOSITORY.score(40, 4);
+        assert!(result.is_err());
+        assert_eq!("User does not exist", result.unwrap_err());
+    }
+
+    #[test]
+    fn test_score_task_does_not_exist() {
+        let result = REPOSITORY.score(4, 40);
+        assert!(result.is_err());
+        assert_eq!("Task does not exist", result.unwrap_err());
+    }
+
+    #[test]
+    fn test_score_task_is_disabled() {
+        let result = REPOSITORY.score(4, 2);
+        assert!(result.is_err());
+        assert_eq!("Task is not enabled", result.unwrap_err());
+    }
+
+    #[test]
+    fn test_create_and_add_user_ok() {
+        let result = REPOSITORY.create_and_add_user("Winston".to_owned(), "Wilson".to_owned(), "fml".to_owned(), false);
+        assert!(result.is_ok());
+        let new_user_id = result.unwrap().lock().unwrap().id;
+        let new_user_result = REPOSITORY.get_user(new_user_id);
+        assert!(new_user_result.is_some());
+    }
+
+    #[test]
+    fn test_create_and_add_user_name_clash() {
+        let result = REPOSITORY.create_and_add_user("dliwespf".to_owned(), "Wilson".to_owned(), "fml".to_owned(), false);
+        let err = result.err();
+        
+        assert!(err.is_some());
+        assert_eq!("Username is not available", err.unwrap());
+    }
+
+    #[test]
+    fn test_add_team() {
+        let repository = Repository::init_repository();
+        let new_id = repository.add_team(Team::new(0, "newTeam".to_owned(), repository.get_user_unlocked(3).unwrap().clone()));
+        //let team = repository.get_
+    }
+
+    #[test]
+    fn test_add_user_to_team() {
+        //REPOSITORY.add_user_to_team(team_name, user_id, manager)
+    }
+
+    #[test]
+    fn test_add_user() {
+        let newbie = User::new(0, "newbie".to_owned(), "Newbie".to_owned(), false);
+        let result = REPOSITORY.add_user(&ADMIN_SESSION, newbie).content;
+        let new_user_id = result.unwrap();
+        assert!(result.is_some());
+        let new_user_result = REPOSITORY.get_user(new_user_id);
+        assert!(new_user_result.is_some());
+    }
+
+    #[test]
+    fn test_login_ok() {
+        let login_request = LoginRequest { username: "roterkohl", password: Some("Flori1234") };
+        let result = REPOSITORY.login(login_request);
+        assert!(result.is_ok());
+        assert_eq!(30, result.unwrap().id.len());
+    }
+
+    #[test]
+    fn test_login_missing_user() {
+        let login_request = LoginRequest { username: "blauerkohl", password: Some("Flori1234") };
+        let result = REPOSITORY.login(login_request);
+        assert!(result.is_err());
+        let err = result.err();
+        assert_eq!("User does not exist", err.unwrap());
+    }
+
+    #[test]
+    fn test_login_wrong_password() {
+        let login_request = LoginRequest { username: "roterkohl", password: Some("Flori5678") };
+        let result = REPOSITORY.login(login_request);
+        assert!(result.is_err());
+        let err = result.err();
+        assert_eq!("Password mismatch", err.unwrap());
+    }
+
+    #[test]
+    fn test_logout_ok() {
+        let result = REPOSITORY.logout(&USER_SESSION.id);
+        assert!(result.is_ok())
+    }
+
+    #[test]
+    fn test_logout_not_logged_in() {
+        let result = REPOSITORY.logout(&"&USER_SESSION.id".to_owned());
+        assert!(result.is_err());
+        assert_eq!("Session unknown", result.unwrap_err())
     }
 }

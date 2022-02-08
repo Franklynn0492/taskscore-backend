@@ -4,7 +4,7 @@ use std::{sync::{Arc, Mutex}, hash::Hash, collections::HashSet};
 use bcrypt::{DEFAULT_COST};
 use rocket::{Request, request::Outcome, http::Status, request::{ FromRequest}};
 
-use crate::repository::repository::Repository;
+use crate::repository::legacy_repository::Repository;
 
 use super::{Task, Score};
 

@@ -1,7 +1,7 @@
 use rocket::response::status::NotFound;
 use rocket::serde::json::Json;
 use rocket::State;
-use crate::repository::repository::Repository;
+use crate::repository::legacy_repository::Repository;
 use crate::model::{Score, Session};
 
 #[post("/score/<task_id>")]

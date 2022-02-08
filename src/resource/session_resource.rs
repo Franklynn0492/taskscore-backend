@@ -3,7 +3,7 @@ use rocket::response::status::NotFound;
 use rocket::serde::json::Json;
 use rocket::State;
 use crate::model::session::LoginRequest;
-use crate::repository::repository::Repository;
+use crate::repository::legacy_repository::Repository;
 use crate::model::{Session};
 
 #[post("/session/login")]

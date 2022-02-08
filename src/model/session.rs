@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use chrono::{DateTime, Utc};
 use rocket::{Request, http::Status, request::FromRequest, request::Outcome};
 
-use crate::repository::repository::Repository;
+use crate::repository::legacy_repository::Repository;
 
 use super::User;
 use rand::Rng;

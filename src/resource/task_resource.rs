@@ -1,6 +1,6 @@
 use rocket::serde::json::Json;
 use rocket::State;
-use crate::repository::repository::Repository;
+use crate::repository::legacy_repository::Repository;
 use crate::model::{Task};
 
 #[get("/task/<id>")]

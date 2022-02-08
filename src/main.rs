@@ -1,4 +1,4 @@
-use repository::repository::Repository;
+use repository::legacy_repository::Repository;
 use rocket::response::status::NotFound;
 use rocket::serde::json::Json;
 
