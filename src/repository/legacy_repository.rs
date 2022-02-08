@@ -5,17 +5,134 @@ use rocket::{fairing::Result, http::Status};
 
 use crate::model::{MessageResponder, Session, Task, User, session::{LoginRequest}, user::{Team}};
 
-pub struct Repository {
+use super::repository::Repository;
+
+pub struct LegacyRepository {
     users: Arc<Mutex<Vec<Arc<Mutex<User>>>>>,
     sessions: Arc<Mutex<Vec<Arc<Mutex<Session>>>>>,
     tasks: Arc<Mutex<Vec<Task>>>,
     teams: Arc<Mutex<Vec<Arc<Mutex<Team>>>>>,
 }
 
-impl Repository {
+impl Repository for LegacyRepository {
+
+    fn get_user<'a>(&'a self, id: u32) -> Option<User> {
+        match self.get_user_unlocked(id) {
+            Some(u) => Some(u.lock().unwrap().clone()),
+            None => None
+        }
+    }
+    
+    fn find_user_by_username<'a>(&'a self, username: &String) -> Option<Arc<Mutex<User>>> {
+        let users_guard = self.users.lock().unwrap();
+        users_guard.iter().find(|user| user.lock().unwrap().username.eq(username)).and_then(|f| Some(f.clone()))
+    }
+
+    fn get_all_users<'a>(&'a self) -> Vec<User> {
+        self.users.lock().unwrap().iter().map(|user_mutex| user_mutex.lock().unwrap().clone()).collect()
+    }
+
+    fn get_task<'a>(&'a self, id: u32) -> Option<Task> {
+        self.tasks.lock().unwrap().iter().find(|task| task.id == id).and_then(|temp_task| Some(temp_task.clone()))
+    }
+
+    fn get_all_tasks<'a>(&'a self) -> Vec<Task> {
+        self.tasks.lock().unwrap().clone()
+    }
+
+    fn get_session<'a>(&'a self, session_id: &String) -> Option<Session> {
+        self.find_session(session_id).and_then(|s| Some(s.lock().unwrap().clone()))
+    }
+
+    fn score<'a>(&'a self, user_id: u32, task_id: u32) -> Result<u16, String> {
+        let users_guard = self.users.lock().unwrap();
+        let user_opt = users_guard.iter().find(|user| user.lock().unwrap().id == user_id);
+        let user_mutex = user_opt.ok_or("User does not exist")?;
+        let mut user = user_mutex.lock().unwrap();
+
+        let locked_tasks = self.tasks.lock().unwrap();
+        let task_opt = locked_tasks.iter().find(|task| task.id == task_id);
+        let task = task_opt.ok_or("Task does not exist")?;
+
+        if !task.enabled {
+            return Err("Task is not enabled".to_owned());
+        }
+
+        user.score_task(task.clone());
+
+        Ok(user.points)
+    }
+
+    fn create_and_add_user<'a>(&'a self, username: String, display_name: String, password: String, is_admin: bool) -> Result<Arc<Mutex<User>>, String> {
+        if self.find_user_by_username(&username).is_some() {
+            return Err("Username is not available".to_owned());
+        }
+
+        let mut user = User::new(0, username, display_name, is_admin);
+        user.set_password(password);
+
+        self.add_user_private(user)
+    }
+
+    fn add_team<'a>(&'a self, team: Team) -> Option<u32> {
+        let new_team = self.add_team_private(team);
+        new_team.and_then(|team| Ok(team.lock().unwrap().id)).ok()
+    }
+
+    fn add_user_to_team<'a>(&'a self, team_name: &String, user_id: u32, manager: User) -> Result<(), String> {
+        let teams_locked = self.teams.lock().unwrap();
+        let users_locked = self.users.lock().unwrap();
+
+        let team = teams_locked.iter().find(|t| t.lock().unwrap().name == *team_name).ok_or(format!("Team with name '{}'does not exist", team_name))?;
+        let user = users_locked.iter().find(|u| u.lock().unwrap().id == user_id).ok_or(format!("User with id {} does not exist", user_id))?;
+        let mut team_locked = team.lock().unwrap();
+        
+        team_locked.add_user(user.clone(), &manager)
+    }
+
+    fn add_user<'a>(&'a self, session: &Session, mut user: User) -> MessageResponder<u32> {
+        let user_mutex_guard = session.user.lock().unwrap();
+        if !user_mutex_guard.is_admin {
+            MessageResponder::create_with_message(Status::Forbidden, "You are not an admin".to_owned())
+        } else {
+            drop(user_mutex_guard);
+            match self.add_user_private(user) {
+                Ok(user) => MessageResponder::create_ok(user.lock().unwrap().id),
+                Err(text) => MessageResponder::create_with_message(Status::Conflict, text)
+            }
+        }
+    }
+
+    fn login(&self, login_request: LoginRequest) -> Result<Session, String> {
+        let username = login_request.username.to_owned();
+        let user_opt = self.find_user_by_username(&username);
+        let user = user_opt.ok_or("User does not exist")?;
+
+        if user.lock().unwrap().verify_password(login_request.password) {
+            let session = Session::new(Arc::clone(&user));
+
+            let mut sessions = self.sessions.lock().unwrap();
+            sessions.push(Arc::new(Mutex::new(session.clone())));
+
+            Ok(session)
+        } else {
+            Err("Password mismatch".to_owned())
+        }
+    }
+
+    fn logout(&self, session_id: &String) -> Result<(), String> {
+        let mut sessions = self.sessions.lock().unwrap();
+        let index = sessions.iter().position(|x| &x.lock().unwrap().clone().id == session_id).ok_or("Session unknown".to_owned())?;
+        sessions.remove(index);
+
+        Ok(())
+    }
+}
+
+impl LegacyRepository {
 
     #[allow(unused)]
-    pub fn init_repository() -> Repository {
+    pub fn init_repository() -> LegacyRepository {
 
         let users = vec![];
 
@@ -28,7 +145,7 @@ impl Repository {
             Task { id: 4, name: "Kaffee kochen".to_owned(), points: 75, enabled: true},
         ];
 
-        let repository = Repository {
+        let repository = LegacyRepository {
             users: Arc::new(Mutex::new(users)),
             sessions: Arc::new(Mutex::new(sessions)),
             tasks: Arc::new(Mutex::new(tasks)),
@@ -72,13 +189,6 @@ impl Repository {
         repository
     }
 
-    pub fn get_user<'a>(&'a self, id: u32) -> Option<User> {
-        match self.get_user_unlocked(id) {
-            Some(u) => Some(u.lock().unwrap().clone()),
-            None => None
-        }
-    }
-
     fn get_user_unlocked<'a>(&'a self, id: u32) -> Option<Arc<Mutex<User>>> {
 
         let users_guard = self.users.lock().unwrap();
@@ -86,89 +196,9 @@ impl Repository {
 
     }
     
-    fn find_user_by_username<'a>(&'a self, username: &String) -> Option<Arc<Mutex<User>>> {
-        let users_guard = self.users.lock().unwrap();
-        users_guard.iter().find(|user| user.lock().unwrap().username.eq(username)).and_then(|f| Some(f.clone()))
-    }
-
-    pub fn get_all_users<'a>(&'a self) -> Vec<User> {
-        self.users.lock().unwrap().iter().map(|user_mutex| user_mutex.lock().unwrap().clone()).collect()
-    }
-
-    pub fn get_task<'a>(&'a self, id: u32) -> Option<Task> {
-        self.tasks.lock().unwrap().iter().find(|task| task.id == id).and_then(|temp_task| Some(temp_task.clone()))
-    }
-
-    pub fn get_all_tasks<'a>(&'a self) -> Vec<Task> {
-        self.tasks.lock().unwrap().clone()
-    }
-    
     fn find_session<'a>(&'a self, session_id: &String) -> Option<Arc<Mutex<Session>>> {
         self.sessions.lock().unwrap().iter().find(|session| session.lock().unwrap().id.eq(session_id))
             .and_then(|f| Some(f.clone()))
-    }
-
-    pub fn get_session<'a>(&'a self, session_id: &String) -> Option<Session> {
-        self.find_session(session_id).and_then(|s| Some(s.lock().unwrap().clone()))
-    }
-
-    pub fn score<'a>(&'a self, user_id: u32, task_id: u32) -> Result<u16, String> {
-        let users_guard = self.users.lock().unwrap();
-        let user_opt = users_guard.iter().find(|user| user.lock().unwrap().id == user_id);
-        let user_mutex = user_opt.ok_or("User does not exist")?;
-        let mut user = user_mutex.lock().unwrap();
-
-        let locked_tasks = self.tasks.lock().unwrap();
-        let task_opt = locked_tasks.iter().find(|task| task.id == task_id);
-        let task = task_opt.ok_or("Task does not exist")?;
-
-        if !task.enabled {
-            return Err("Task is not enabled".to_owned());
-        }
-
-        user.score_task(task.clone());
-
-        Ok(user.points)
-    }
-
-    pub fn create_and_add_user<'a>(&'a self, username: String, display_name: String, password: String, is_admin: bool) -> Result<Arc<Mutex<User>>, String> {
-        if self.find_user_by_username(&username).is_some() {
-            return Err("Username is not available".to_owned());
-        }
-
-        let mut user = User::new(0, username, display_name, is_admin);
-        user.set_password(password);
-
-        self.add_user_private(user)
-    }
-
-    pub fn add_team<'a>(&'a self, team: Team) -> Option<u32> {
-        let new_team = self.add_team_private(team);
-        new_team.and_then(|team| Ok(team.lock().unwrap().id)).ok()
-    }
-
-    pub fn add_user_to_team<'a>(&'a self, team_name: &String, user_id: u32, manager: User) -> Result<(), String> {
-        let teams_locked = self.teams.lock().unwrap();
-        let users_locked = self.users.lock().unwrap();
-
-        let team = teams_locked.iter().find(|t| t.lock().unwrap().name == *team_name).ok_or(format!("Team with name '{}'does not exist", team_name))?;
-        let user = users_locked.iter().find(|u| u.lock().unwrap().id == user_id).ok_or(format!("User with id {} does not exist", user_id))?;
-        let mut team_locked = team.lock().unwrap();
-        
-        team_locked.add_user(user.clone(), &manager)
-    }
-
-    pub fn add_user<'a>(&'a self, session: &Session, mut user: User) -> MessageResponder<u32> {
-        let user_mutex_guard = session.user.lock().unwrap();
-        if !user_mutex_guard.is_admin {
-            MessageResponder::create_with_message(Status::Forbidden, "You are not an admin".to_owned())
-        } else {
-            drop(user_mutex_guard);
-            match self.add_user_private(user) {
-                Ok(user) => MessageResponder::create_ok(user.lock().unwrap().id),
-                Err(text) => MessageResponder::create_with_message(Status::Conflict, text)
-            }
-        }
     }
 
     fn add_user_private<'a>(&'a self, mut user: User) -> Result<Arc<Mutex<User>>, String> {
@@ -196,31 +226,6 @@ impl Repository {
 
         Ok(new_team)
     }
-
-    pub fn login(&self, login_request: LoginRequest) -> Result<Session, String> {
-        let username = login_request.username.to_owned();
-        let user_opt = self.find_user_by_username(&username);
-        let user = user_opt.ok_or("User does not exist")?;
-
-        if user.lock().unwrap().verify_password(login_request.password) {
-            let session = Session::new(Arc::clone(&user));
-
-            let mut sessions = self.sessions.lock().unwrap();
-            sessions.push(Arc::new(Mutex::new(session.clone())));
-
-            Ok(session)
-        } else {
-            Err("Password mismatch".to_owned())
-        }
-    }
-
-    pub fn logout(&self, session_id: &String) -> Result<(), String> {
-        let mut sessions = self.sessions.lock().unwrap();
-        let index = sessions.iter().position(|x| &x.lock().unwrap().clone().id == session_id).ok_or("Session unknown".to_owned())?;
-        sessions.remove(index);
-
-        Ok(())
-    }
 }
 
 #[cfg(test)]
@@ -228,11 +233,12 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use crate::model::{Session, session::LoginRequest, User, user::Team};
+    use crate::repository::repository::Repository;
 
-    use super::Repository;
+    use super::LegacyRepository;
 
     lazy_static! {
-        static ref REPOSITORY: Repository = Repository::init_repository();
+        static ref REPOSITORY: LegacyRepository = LegacyRepository::init_repository();
         static ref ADMIN_SESSION: Session = REPOSITORY.login(LoginRequest{username: "roterkohl", password: Some("Flori1234")}).unwrap();
         static ref USER_SESSION: Session = REPOSITORY.login(LoginRequest{username: "dliwespf", password: Some("Franki1234")}).unwrap();
     }
@@ -267,7 +273,7 @@ mod tests {
 
     #[test]
     fn test_get_all_users() {
-        let result = Repository::init_repository().get_all_users();
+        let result = LegacyRepository::init_repository().get_all_users();
         assert_eq!(4, result.len());
     }
 
@@ -286,7 +292,7 @@ mod tests {
 
     #[test]
     fn test_get_all_tasks() {
-        let result = Repository::init_repository().get_all_tasks();
+        let result = LegacyRepository::init_repository().get_all_tasks();
         assert_eq!(4, result.len());
     }
 
@@ -351,7 +357,7 @@ mod tests {
 
     #[test]
     fn test_add_team() {
-        let repository = Repository::init_repository();
+        let repository = LegacyRepository::init_repository();
         let new_id = repository.add_team(Team::new(0, "newTeam".to_owned(), repository.get_user_unlocked(3).unwrap().clone()));
         //let team = repository.get_
     }

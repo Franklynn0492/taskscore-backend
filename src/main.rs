@@ -1,4 +1,4 @@
-use repository::legacy_repository::Repository;
+use repository::legacy_repository::LegacyRepository;
 use rocket::response::status::NotFound;
 use rocket::serde::json::Json;
 
@@ -35,7 +35,7 @@ async fn main() {
 
     let _ = rocket::build()
 
-    .manage(Repository::init_repository())
+    .manage(LegacyRepository::init_repository())
     .mount(context_root, routes![hello,
         get_user, get_current_user, get_all_users, add_user,
         get_task, get_all_tasks,

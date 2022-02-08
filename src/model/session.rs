@@ -3,7 +3,8 @@ use std::sync::{Arc, Mutex};
 use chrono::{DateTime, Utc};
 use rocket::{Request, http::Status, request::FromRequest, request::Outcome};
 
-use crate::repository::legacy_repository::Repository;
+use crate::repository::legacy_repository::LegacyRepository;
+use crate::repository::repository::Repository;
 
 use super::User;
 use rand::Rng;
@@ -54,7 +55,7 @@ impl <'a> FromRequest<'a> for Session {
     type Error = String;
 
     async fn from_request(request: &'a Request<'_>) -> Outcome<Self, Self::Error> {
-        let repository = request.rocket().state::<Repository>();
+        let repository = request.rocket().state::<LegacyRepository>();
         if repository.is_none() {
             return Outcome::Failure((Status::InternalServerError, "Missing status".to_owned()))
         }

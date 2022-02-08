@@ -4,7 +4,8 @@ use std::{sync::{Arc, Mutex}, hash::Hash, collections::HashSet};
 use bcrypt::{DEFAULT_COST};
 use rocket::{Request, request::Outcome, http::Status, request::{ FromRequest}};
 
-use crate::repository::legacy_repository::Repository;
+use crate::repository::legacy_repository::LegacyRepository;
+use crate::repository::repository::Repository;
 
 use super::{Task, Score};
 
@@ -138,7 +139,7 @@ impl <'a> FromRequest<'a> for Team {
     async fn from_request(request: &'a Request<'_>) -> Outcome<Self, Self::Error> {
         let teamname_opt = request.headers().get_one("teamname");//.ok_or("Team name is required")?;
         let user_id_opt = request.headers().get_one("userid");
-        let state = request.rocket().state::<Repository>().unwrap();
+        let state = request.rocket().state::<LegacyRepository>().unwrap();
 
         if teamname_opt.is_none() {
             return Outcome::Failure((Status::BadRequest, "Team name is required".to_owned()));
