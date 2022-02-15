@@ -21,6 +21,8 @@ serde = {version ="1.0", features = ["derive", "rc"]}   # general (de-) serialza
 async-trait = "0.1.50"  # Asynchronous programming
 chrono = { version = "0.4", features = ["serde"] }  # Timestamp (de-)serialization
 dotenv = "0.15.0"       # Environment configuration handling
+bolt-client = "0.10.1"  # Neo4J connection
+tokio-util = {version = "0.7.0", features = ["compat"]}  # Utility features fort tokio async
 
 [dev-dependencies]
 lazy_static = "1.4.0"   # Lazy global value initialization
