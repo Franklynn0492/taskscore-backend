@@ -18,3 +18,5 @@ pub trait Repository {
     fn login(&self, login_request: LoginRequest) -> Result<Session, String>;
     fn logout(&self, session_id: &String) -> Result<(), String>;
 }
+
+pub trait SizedRepository: Repository + Sized {}

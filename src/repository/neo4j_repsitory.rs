@@ -6,8 +6,11 @@ use dotenv::dotenv;
 use rocket::{http::private::Connection, tokio::{net::TcpStream, io::BufStream}};
 use tokio_util::compat::*;
 
+use super::{legacy_repository::{LegacyRepository, self}, repository::Repository};
+
 pub struct Neo4JRepository {
     client: Client<Compat<BufStream<TcpStream>>>,
+    legacy_repo: LegacyRepository,  // TODO: Replace me
 }
 
 type ConnectionError = String;
@@ -37,6 +40,60 @@ impl Neo4JRepository {
 
         Success::try_from(response).or(Err("DB responded with error on login".to_owned()))?;
 
-        Ok(Neo4JRepository { client })
+        Ok(Neo4JRepository { client, legacy_repo: LegacyRepository::init_repository() })
+    }
+}
+
+impl Repository for Neo4JRepository {
+    fn get_user<'a>(&'a self, id: u32) -> Option<crate::model::User> {
+        todo!()
+    }
+
+    fn find_user_by_username<'a>(&'a self, username: &String) -> Option<std::sync::Arc<std::sync::Mutex<crate::model::User>>> {
+        todo!()
+    }
+
+    fn get_all_users<'a>(&'a self) -> Vec<crate::model::User> {
+        self.legacy_repo.get_all_users()
+    }
+
+    fn get_task<'a>(&'a self, id: u32) -> Option<crate::model::Task> {
+        todo!()
+    }
+
+    fn get_all_tasks<'a>(&'a self) -> Vec<crate::model::Task> {
+        todo!()
+    }
+
+    fn get_session<'a>(&'a self, session_id: &String) -> Option<crate::model::Session> {
+        todo!()
+    }
+
+    fn score<'a>(&'a self, user_id: u32, task_id: u32) -> Result<u16, String> {
+        todo!()
+    }
+
+    fn create_and_add_user<'a>(&'a self, username: String, display_name: String, password: String, is_admin: bool) -> Result<std::sync::Arc<std::sync::Mutex<crate::model::User>>, String> {
+        todo!()
+    }
+
+    fn add_team<'a>(&'a self, team: crate::model::user::Team) -> Option<u32> {
+        todo!()
+    }
+
+    fn add_user_to_team<'a>(&'a self, team_name: &String, user_id: u32, manager: crate::model::User) -> Result<(), String> {
+        todo!()
+    }
+
+    fn add_user<'a>(&'a self, session: &crate::model::Session, user: crate::model::User) -> crate::model::MessageResponder<u32> {
+        todo!()
+    }
+
+    fn login(&self, login_request: crate::model::session::LoginRequest) -> Result<crate::model::Session, String> {
+        todo!()
+    }
+
+    fn logout(&self, session_id: &String) -> Result<(), String> {
+        todo!()
     }
 }
