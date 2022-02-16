@@ -55,12 +55,16 @@ impl Repository for Neo4JRepository {
     }
 
     fn find_user_by_username_const<'a>(&'a self, username: &String) -> Option<crate::model::User> {
-        let statement = "MATCH (n:Person {{username: '$username'}}) Return n";
-        let params = Params::from_iter(vec![("username", username.clone())]);
         let mut client = self.client.lock().unwrap();
-        client.run(statement, Some(params), None);
 
-        let (records, response) = block_on(client.pull(Some(Metadata::from_iter(vec![("n", "1")])))).unwrap();
+        let statement = "MATCH (p:Person {username: 'roterkohl'}) RETURN p;";
+        let params = Params::from_iter(vec![("username", username.clone())]);
+        block_on(client.run(statement, None, None));
+        //block_on(client.run(statement, Some(params), None));
+
+        let metadata = Some(Metadata::from_iter(vec![("n", 1)]));
+
+        let (records, response) = block_on(client.pull(metadata)).unwrap();
 
         if records.len() == 0 {
             return None;
