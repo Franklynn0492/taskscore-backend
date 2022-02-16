@@ -11,7 +11,7 @@ GRANT ROLE taskscore_admin_role TO tsadmin;
 
 GRANT ALL ON HOME DATABASE TO taskscore_admin_role;
 
-
+:USE taskscore;
 
 CREATE (u_fl:Person {username: 'roterkohl', display_name: 'Flori', password: 'Flori1234', is_admin: true }),
 	(u_mi:Person {username: 'brutours.de', display_name: 'Michi', password: 'Michi1234' }),

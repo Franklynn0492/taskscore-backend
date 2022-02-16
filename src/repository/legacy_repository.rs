@@ -27,6 +27,12 @@ impl Repository for LegacyRepository {
         let users_guard = self.users.lock().unwrap();
         users_guard.iter().find(|user| user.lock().unwrap().username.eq(username)).and_then(|f| Some(f.clone()))
     }
+    
+    fn find_user_by_username_const<'a>(&'a self, username: &String) -> Option<User> {
+        let users_guard = self.users.lock().unwrap();
+        let user = users_guard.iter().find(|user| user.lock().unwrap().username.eq(username)).and_then(|f| Some(f.clone()));
+        user.and_then(|u| Some(u.clone().lock().unwrap().clone()))
+    }
 
     fn get_all_users<'a>(&'a self) -> Vec<User> {
         self.users.lock().unwrap().iter().map(|user_mutex| user_mutex.lock().unwrap().clone()).collect()

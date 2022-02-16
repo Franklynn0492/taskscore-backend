@@ -1,7 +1,8 @@
 
-use std::{sync::{Arc, Mutex}, hash::Hash, collections::HashSet};
+use std::{sync::{Arc, Mutex}, hash::Hash, collections::{HashSet, HashMap}, convert::TryFrom};
 
 use bcrypt::{DEFAULT_COST};
+use bolt_client::bolt_proto::{value::Node, Value};
 use rocket::{Request, request::Outcome, http::Status, request::{ FromRequest}};
 
 use crate::repository::legacy_repository::LegacyRepository;
@@ -93,6 +94,41 @@ impl Hash for User {
     }
 }
 
+impl From<Node> for User {
+
+
+    fn from(value: Node) -> Self {
+        let properties = value.properties();
+        let username = get_string(properties, "username", "N/A");
+        let display_name = get_string(properties, "display_name", "N/A");
+        let is_admin = get_bool(properties, "is_admin", false);
+        let points = get_u16(properties, "points", 0);
+
+        User{id: 0, username, display_name, is_admin, points, scores: vec![], pwd_hash_components: None}
+    }
+}
+
+fn get_string(properties: &HashMap<String, Value>, key: &str, alternative: &str) -> String  {
+    match properties.get(key) {
+        Some(Value::String(val)) => val.clone(),
+        _ => alternative.to_owned()
+    }
+}
+
+fn get_bool(properties: &HashMap<String, Value>, key: &str, alternative: bool) -> bool  {
+    match properties.get(key) {
+        Some(Value::Boolean(val)) => *val,
+        _ => alternative
+    }
+}
+
+fn get_u16(properties: &HashMap<String, Value>, key: &str, alternative: u16) -> u16  {
+    match properties.get(key) {
+        Some(Value::Integer(val)) => *val as u16,
+        _ => alternative
+    }
+}
+
 #[derive(Clone)]
 #[derive(serde::Serialize)]
 pub struct Team {
@@ -139,7 +175,7 @@ impl <'a> FromRequest<'a> for Team {
     async fn from_request(request: &'a Request<'_>) -> Outcome<Self, Self::Error> {
         let teamname_opt = request.headers().get_one("teamname");//.ok_or("Team name is required")?;
         let user_id_opt = request.headers().get_one("userid");
-        let state = request.rocket().state::<LegacyRepository>().unwrap();
+        let mut state = request.rocket().state::<LegacyRepository>().unwrap();
 
         if teamname_opt.is_none() {
             return Outcome::Failure((Status::BadRequest, "Team name is required".to_owned()));

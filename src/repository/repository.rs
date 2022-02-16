@@ -6,6 +6,7 @@ pub trait Repository {
 
     fn get_user<'a>(&'a self, id: u32) -> Option<User>;
     fn find_user_by_username<'a>(&'a self, username: &String) -> Option<Arc<Mutex<User>>>;
+    fn find_user_by_username_const<'a>(&'a self, username: &String) -> Option<User>;
     fn get_all_users<'a>(&'a self) -> Vec<User>;
     fn get_task<'a>(&'a self, id: u32) -> Option<Task>;
     fn get_all_tasks<'a>(&'a self) -> Vec<Task>;

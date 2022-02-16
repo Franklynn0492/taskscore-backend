@@ -10,6 +10,11 @@ pub fn get_user<'a>(id: u32, repository: &'a State<Neo4JRepository>) -> Option<J
     repository.get_user(id).map_or(None, |user| Some(Json(user)))
 }
 
+#[get("/user/username/<username>")]
+pub fn get_user_by_username<'a>(username: String, repository: &'a State<Neo4JRepository>) -> Option<Json<User>> {
+    repository.find_user_by_username_const(&username).map_or(None, |user| Some(Json(user)))
+}
+
 #[get("/user")]
 pub fn get_current_user<'a>(session: Session) -> Json<User> {
     Json(session.user.lock().unwrap().clone())

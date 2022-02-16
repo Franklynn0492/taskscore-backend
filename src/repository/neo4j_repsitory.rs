@@ -1,15 +1,17 @@
 
-use std::{env, iter::FromIterator, convert::TryFrom};
+use std::{env, iter::FromIterator, convert::TryFrom, sync::{Arc, Mutex}};
 
-use bolt_client::{Client, bolt_proto::{version::{V4_3, V4_2}, Message, message::Success}, Metadata};
+use bolt_client::{Client, bolt_proto::{version::{V4_3, V4_2}, Message, message::Success, value::Node}, Metadata, Params};
 use dotenv::dotenv;
-use rocket::{http::private::Connection, tokio::{net::TcpStream, io::BufStream}};
+use rocket::{tokio::{net::TcpStream, io::BufStream}, futures::executor::block_on};
 use tokio_util::compat::*;
+
+use crate::model::User;
 
 use super::{legacy_repository::{LegacyRepository, self}, repository::Repository};
 
 pub struct Neo4JRepository {
-    client: Client<Compat<BufStream<TcpStream>>>,
+    client: Mutex<Client<Compat<BufStream<TcpStream>>>>,
     legacy_repo: LegacyRepository,  // TODO: Replace me
 }
 
@@ -40,7 +42,7 @@ impl Neo4JRepository {
 
         Success::try_from(response).or(Err("DB responded with error on login".to_owned()))?;
 
-        Ok(Neo4JRepository { client, legacy_repo: LegacyRepository::init_repository() })
+        Ok(Neo4JRepository { client: Mutex::new(client), legacy_repo: LegacyRepository::init_repository() })
     }
 }
 
@@ -48,9 +50,27 @@ impl Repository for Neo4JRepository {
     fn get_user<'a>(&'a self, id: u32) -> Option<crate::model::User> {
         todo!()
     }
-
     fn find_user_by_username<'a>(&'a self, username: &String) -> Option<std::sync::Arc<std::sync::Mutex<crate::model::User>>> {
         todo!()
+    }
+
+    fn find_user_by_username_const<'a>(&'a self, username: &String) -> Option<crate::model::User> {
+        let statement = "MATCH (n:Person {{username: '$username'}}) Return n";
+        let params = Params::from_iter(vec![("username", username.clone())]);
+        let mut client = self.client.lock().unwrap();
+        client.run(statement, Some(params), None);
+
+        let (records, response) = block_on(client.pull(Some(Metadata::from_iter(vec![("n", "1")])))).unwrap();
+
+        if records.len() == 0 {
+            return None;
+        }
+
+        let node = Node::try_from(records[0].fields()[0].clone()).unwrap();
+
+        let user = User::from(node);
+
+        return Some(user)
     }
 
     fn get_all_users<'a>(&'a self) -> Vec<crate::model::User> {
