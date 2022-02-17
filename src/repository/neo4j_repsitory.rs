@@ -79,7 +79,7 @@ impl Neo4JRepository {
         }
 
         Neo4JRepository::discard(client).await;
-        
+
         Some(records)
     }
 }
@@ -87,10 +87,12 @@ impl Neo4JRepository {
 #[async_trait]
 impl Repository for Neo4JRepository {
     async fn get_user<'a>(&'a self, id: u32) -> Option<crate::model::User> {
-        todo!()
+        self.legacy_repo.get_user(id).await
     }
+
+    // Todo: Remove (and rename find_user_by_username_const), is obsolete
     async fn find_user_by_username<'a>(&'a self, username: &String) -> Option<std::sync::Arc<std::sync::Mutex<crate::model::User>>> {
-        todo!()
+        self.legacy_repo.find_user_by_username(username).await
     }
 
     async fn find_user_by_username_const<'a>(&'a self, username: &String) -> Option<crate::model::User> {
@@ -113,42 +115,42 @@ impl Repository for Neo4JRepository {
     }
 
     async fn get_task<'a>(&'a self, id: u32) -> Option<crate::model::Task> {
-        todo!()
+        self.legacy_repo.get_task(id).await
     }
 
     async fn get_all_tasks<'a>(&'a self) -> Vec<crate::model::Task> {
-        todo!()
+        self.legacy_repo.get_all_tasks().await
     }
 
     async fn get_session<'a>(&'a self, session_id: &String) -> Option<crate::model::Session> {
-        todo!()
+        self.legacy_repo.get_session(session_id).await
     }
 
     async fn score<'a>(&'a self, user_id: u32, task_id: u32) -> Result<u16, String> {
-        todo!()
+        self.legacy_repo.score(user_id, task_id).await
     }
 
     async fn create_and_add_user<'a>(&'a self, username: String, display_name: String, password: String, is_admin: bool) -> Result<std::sync::Arc<std::sync::Mutex<crate::model::User>>, String> {
-        todo!()
+        self.legacy_repo.create_and_add_user(username, display_name, password, is_admin).await
     }
 
     async fn add_team<'a>(&'a self, team: crate::model::user::Team) -> Option<u32> {
-        todo!()
+        self.legacy_repo.add_team(team).await
     }
 
     async fn add_user_to_team<'a>(&'a self, team_name: &String, user_id: u32, manager: crate::model::User) -> Result<(), String> {
-        todo!()
+        self.legacy_repo.add_user_to_team(team_name, user_id, manager).await
     }
 
     async fn add_user<'a>(&'a self, session: &crate::model::Session, user: crate::model::User) -> crate::model::MessageResponder<u32> {
-        todo!()
+        self.legacy_repo.add_user(session, user).await
     }
 
     async fn login<'a>(&'a self, login_request: crate::model::session::LoginRequest<'a>) -> Result<crate::model::Session, String> {
-        todo!()
+        self.legacy_repo.login(login_request).await
     }
 
     async fn logout(&self, session_id: &String) -> Result<(), String> {
-        todo!()
+        self.legacy_repo.logout(session_id).await
     }
 }
