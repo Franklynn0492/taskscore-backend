@@ -1,11 +1,10 @@
 
-use std::{env, iter::FromIterator, convert::TryFrom, sync::{Arc, Mutex}};
+use std::{env, iter::FromIterator, convert::TryFrom, sync::{Arc}};
 
 use bolt_client::{Client, bolt_proto::{version::{V4_3, V4_2}, Message, message::{Success, Discard}, value::Node}, Metadata, Params};
 use dotenv::dotenv;
-use rocket::{tokio::{net::TcpStream, io::BufStream}, futures::executor::block_on};
+use rocket::{tokio::{net::TcpStream, io::BufStream}, futures::lock::Mutex};
 use tokio_util::compat::*;
-
 use crate::model::User;
 
 use super::{legacy_repository::{LegacyRepository, self}, repository::Repository};
@@ -65,12 +64,11 @@ impl Repository for Neo4JRepository {
     }
 
     async fn find_user_by_username_const<'a>(&'a self, username: &String) -> Option<crate::model::User> {
-        let mut client = self.client.lock().unwrap();
+        let mut client = self.client.lock().await;
 
         let statement = "MATCH (p:Person {username: $username}) RETURN p;";
         let params = Params::from_iter(vec![("username", username.clone())]);
-        //block_on(client.run(statement, None, None));
-        let run_result = block_on(client.run(statement, Some(params), None));
+        let run_result = client.run(statement, Some(params), None).await;
 
         if run_result.is_err() {
             let err_msg = run_result.unwrap_err();
@@ -80,7 +78,7 @@ impl Repository for Neo4JRepository {
 
         let metadata = Some(Metadata::from_iter(vec![("n", 1)]));
 
-        let pull_result = block_on(client.pull(metadata));
+        let pull_result = client.pull(metadata).await;
         if pull_result.is_err() {
             let err_msg = pull_result.unwrap_err();
             println!("{}", err_msg);
@@ -97,7 +95,7 @@ impl Repository for Neo4JRepository {
 
         let user = User::from(node);
 
-        block_on(Neo4JRepository::discard(&mut client));
+        Neo4JRepository::discard(&mut client).await;
 
         return Some(user)
     }
