@@ -1,7 +1,7 @@
 
 use std::{env, iter::FromIterator, convert::TryFrom, sync::{Arc, Mutex}};
 
-use bolt_client::{Client, bolt_proto::{version::{V4_3, V4_2}, Message, message::Success, value::Node}, Metadata, Params};
+use bolt_client::{Client, bolt_proto::{version::{V4_3, V4_2}, Message, message::{Success, Discard}, value::Node}, Metadata, Params};
 use dotenv::dotenv;
 use rocket::{tokio::{net::TcpStream, io::BufStream}, futures::executor::block_on};
 use tokio_util::compat::*;
@@ -44,6 +44,10 @@ impl Neo4JRepository {
 
         Ok(Neo4JRepository { client: Mutex::new(client), legacy_repo: LegacyRepository::init_repository() })
     }
+
+    async fn discard(client: &mut Client<Compat<BufStream<TcpStream>>>) {
+        client.discard(Some(Metadata::from_iter(vec![("n", -1)])));
+    }
 }
 
 impl Repository for Neo4JRepository {
@@ -57,14 +61,21 @@ impl Repository for Neo4JRepository {
     fn find_user_by_username_const<'a>(&'a self, username: &String) -> Option<crate::model::User> {
         let mut client = self.client.lock().unwrap();
 
-        let statement = "MATCH (p:Person {username: 'roterkohl'}) RETURN p;";
+        let statement = "MATCH (p:Person {username: $username}) RETURN p;";
         let params = Params::from_iter(vec![("username", username.clone())]);
-        block_on(client.run(statement, None, None));
-        //block_on(client.run(statement, Some(params), None));
+        //block_on(client.run(statement, None, None));
+        block_on(client.run(statement, Some(params), None));
 
         let metadata = Some(Metadata::from_iter(vec![("n", 1)]));
 
-        let (records, response) = block_on(client.pull(metadata)).unwrap();
+        let pull_result = block_on(client.pull(metadata));
+        if pull_result.is_err() {
+            let err_msg = pull_result.unwrap_err();
+            println!("{}", err_msg);
+            return None;
+        }
+
+        let (records, response) = pull_result.unwrap();
 
         if records.len() == 0 {
             return None;
@@ -73,6 +84,8 @@ impl Repository for Neo4JRepository {
         let node = Node::try_from(records[0].fields()[0].clone()).unwrap();
 
         let user = User::from(node);
+
+        Neo4JRepository::discard(&mut client);
 
         return Some(user)
     }
