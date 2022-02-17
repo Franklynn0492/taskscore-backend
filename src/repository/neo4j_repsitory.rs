@@ -46,7 +46,12 @@ impl Neo4JRepository {
     }
 
     async fn discard(client: &mut Client<Compat<BufStream<TcpStream>>>) {
-        client.discard(Some(Metadata::from_iter(vec![("n", -1)])));
+        let discard_result = client.discard(Some(Metadata::from_iter(vec![("n", -1)]))).await;
+
+        if discard_result.is_err() {
+            let err_msg = discard_result.unwrap_err();
+            println!("{}", err_msg);
+        }
     }
 }
 
@@ -64,7 +69,13 @@ impl Repository for Neo4JRepository {
         let statement = "MATCH (p:Person {username: $username}) RETURN p;";
         let params = Params::from_iter(vec![("username", username.clone())]);
         //block_on(client.run(statement, None, None));
-        block_on(client.run(statement, Some(params), None));
+        let run_result = block_on(client.run(statement, Some(params), None));
+
+        if run_result.is_err() {
+            let err_msg = run_result.unwrap_err();
+            println!("{}", err_msg);
+            return None;
+        }
 
         let metadata = Some(Metadata::from_iter(vec![("n", 1)]));
 
@@ -85,7 +96,7 @@ impl Repository for Neo4JRepository {
 
         let user = User::from(node);
 
-        Neo4JRepository::discard(&mut client);
+        block_on(Neo4JRepository::discard(&mut client));
 
         return Some(user)
     }
