@@ -42,7 +42,7 @@ impl Neo4JRepository {
 
         Success::try_from(response).or(Err("DB responded with error on login".to_owned()))?;
 
-        Ok(Neo4JRepository { client: Mutex::new(client), legacy_repo: LegacyRepository::init_repository() })
+        Ok(Neo4JRepository { client: Mutex::new(client), legacy_repo: LegacyRepository::init_repository().await })
     }
 
     async fn discard(client: &mut Client<Compat<BufStream<TcpStream>>>) {
@@ -55,15 +55,16 @@ impl Neo4JRepository {
     }
 }
 
+#[async_trait]
 impl Repository for Neo4JRepository {
-    fn get_user<'a>(&'a self, id: u32) -> Option<crate::model::User> {
+    async fn get_user<'a>(&'a self, id: u32) -> Option<crate::model::User> {
         todo!()
     }
-    fn find_user_by_username<'a>(&'a self, username: &String) -> Option<std::sync::Arc<std::sync::Mutex<crate::model::User>>> {
+    async fn find_user_by_username<'a>(&'a self, username: &String) -> Option<std::sync::Arc<std::sync::Mutex<crate::model::User>>> {
         todo!()
     }
 
-    fn find_user_by_username_const<'a>(&'a self, username: &String) -> Option<crate::model::User> {
+    async fn find_user_by_username_const<'a>(&'a self, username: &String) -> Option<crate::model::User> {
         let mut client = self.client.lock().unwrap();
 
         let statement = "MATCH (p:Person {username: $username}) RETURN p;";
@@ -101,47 +102,47 @@ impl Repository for Neo4JRepository {
         return Some(user)
     }
 
-    fn get_all_users<'a>(&'a self) -> Vec<crate::model::User> {
-        self.legacy_repo.get_all_users()
+    async fn get_all_users<'a>(&'a self) -> Vec<crate::model::User> {
+        self.legacy_repo.get_all_users().await
     }
 
-    fn get_task<'a>(&'a self, id: u32) -> Option<crate::model::Task> {
+    async fn get_task<'a>(&'a self, id: u32) -> Option<crate::model::Task> {
         todo!()
     }
 
-    fn get_all_tasks<'a>(&'a self) -> Vec<crate::model::Task> {
+    async fn get_all_tasks<'a>(&'a self) -> Vec<crate::model::Task> {
         todo!()
     }
 
-    fn get_session<'a>(&'a self, session_id: &String) -> Option<crate::model::Session> {
+    async fn get_session<'a>(&'a self, session_id: &String) -> Option<crate::model::Session> {
         todo!()
     }
 
-    fn score<'a>(&'a self, user_id: u32, task_id: u32) -> Result<u16, String> {
+    async fn score<'a>(&'a self, user_id: u32, task_id: u32) -> Result<u16, String> {
         todo!()
     }
 
-    fn create_and_add_user<'a>(&'a self, username: String, display_name: String, password: String, is_admin: bool) -> Result<std::sync::Arc<std::sync::Mutex<crate::model::User>>, String> {
+    async fn create_and_add_user<'a>(&'a self, username: String, display_name: String, password: String, is_admin: bool) -> Result<std::sync::Arc<std::sync::Mutex<crate::model::User>>, String> {
         todo!()
     }
 
-    fn add_team<'a>(&'a self, team: crate::model::user::Team) -> Option<u32> {
+    async fn add_team<'a>(&'a self, team: crate::model::user::Team) -> Option<u32> {
         todo!()
     }
 
-    fn add_user_to_team<'a>(&'a self, team_name: &String, user_id: u32, manager: crate::model::User) -> Result<(), String> {
+    async fn add_user_to_team<'a>(&'a self, team_name: &String, user_id: u32, manager: crate::model::User) -> Result<(), String> {
         todo!()
     }
 
-    fn add_user<'a>(&'a self, session: &crate::model::Session, user: crate::model::User) -> crate::model::MessageResponder<u32> {
+    async fn add_user<'a>(&'a self, session: &crate::model::Session, user: crate::model::User) -> crate::model::MessageResponder<u32> {
         todo!()
     }
 
-    fn login(&self, login_request: crate::model::session::LoginRequest) -> Result<crate::model::Session, String> {
+    async fn login<'a>(&'a self, login_request: crate::model::session::LoginRequest<'a>) -> Result<crate::model::Session, String> {
         todo!()
     }
 
-    fn logout(&self, session_id: &String) -> Result<(), String> {
+    async fn logout(&self, session_id: &String) -> Result<(), String> {
         todo!()
     }
 }

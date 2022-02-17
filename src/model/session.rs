@@ -69,7 +69,7 @@ impl <'a> FromRequest<'a> for Session {
         let cookie = cookie.unwrap();
 
         let sid = cookie.value().to_owned();
-        let session = repository.get_session(&sid);
+        let session = repository.get_session(&sid).await;
         if session.is_none() {
             return Outcome::Failure((Status::Unauthorized, "Session not available".to_owned()))
         }

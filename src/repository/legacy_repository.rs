@@ -1,7 +1,7 @@
 
 use std::{sync::{Mutex, Arc}};
 
-use rocket::{fairing::Result, http::Status};
+use rocket::{fairing::Result, http::Status, futures::join};
 
 use crate::model::{MessageResponder, Session, Task, User, session::{LoginRequest}, user::{Team}};
 
@@ -14,43 +14,44 @@ pub struct LegacyRepository {
     teams: Arc<Mutex<Vec<Arc<Mutex<Team>>>>>,
 }
 
+#[async_trait]
 impl Repository for LegacyRepository {
 
-    fn get_user<'a>(&'a self, id: u32) -> Option<User> {
+    async fn get_user<'a>(&'a self, id: u32) -> Option<User> {
         match self.get_user_unlocked(id) {
             Some(u) => Some(u.lock().unwrap().clone()),
             None => None
         }
     }
     
-    fn find_user_by_username<'a>(&'a self, username: &String) -> Option<Arc<Mutex<User>>> {
+    async fn find_user_by_username<'a>(&'a self, username: &String) -> Option<Arc<Mutex<User>>> {
         let users_guard = self.users.lock().unwrap();
         users_guard.iter().find(|user| user.lock().unwrap().username.eq(username)).and_then(|f| Some(f.clone()))
     }
     
-    fn find_user_by_username_const<'a>(&'a self, username: &String) -> Option<User> {
+    async fn find_user_by_username_const<'a>(&'a self, username: &String) -> Option<User> {
         let users_guard = self.users.lock().unwrap();
         let user = users_guard.iter().find(|user| user.lock().unwrap().username.eq(username)).and_then(|f| Some(f.clone()));
         user.and_then(|u| Some(u.clone().lock().unwrap().clone()))
     }
 
-    fn get_all_users<'a>(&'a self) -> Vec<User> {
+    async fn get_all_users<'a>(&'a self) -> Vec<User> {
         self.users.lock().unwrap().iter().map(|user_mutex| user_mutex.lock().unwrap().clone()).collect()
     }
 
-    fn get_task<'a>(&'a self, id: u32) -> Option<Task> {
+    async fn get_task<'a>(&'a self, id: u32) -> Option<Task> {
         self.tasks.lock().unwrap().iter().find(|task| task.id == id).and_then(|temp_task| Some(temp_task.clone()))
     }
 
-    fn get_all_tasks<'a>(&'a self) -> Vec<Task> {
+    async fn get_all_tasks<'a>(&'a self) -> Vec<Task> {
         self.tasks.lock().unwrap().clone()
     }
 
-    fn get_session<'a>(&'a self, session_id: &String) -> Option<Session> {
+    async fn get_session<'a>(&'a self, session_id: &String) -> Option<Session> {
         self.find_session(session_id).and_then(|s| Some(s.lock().unwrap().clone()))
     }
 
-    fn score<'a>(&'a self, user_id: u32, task_id: u32) -> Result<u16, String> {
+    async fn score<'a>(&'a self, user_id: u32, task_id: u32) -> Result<u16, String> {
         let users_guard = self.users.lock().unwrap();
         let user_opt = users_guard.iter().find(|user| user.lock().unwrap().id == user_id);
         let user_mutex = user_opt.ok_or("User does not exist")?;
@@ -69,8 +70,8 @@ impl Repository for LegacyRepository {
         Ok(user.points)
     }
 
-    fn create_and_add_user<'a>(&'a self, username: String, display_name: String, password: String, is_admin: bool) -> Result<Arc<Mutex<User>>, String> {
-        if self.find_user_by_username(&username).is_some() {
+    async fn create_and_add_user<'a>(&'a self, username: String, display_name: String, password: String, is_admin: bool) -> Result<Arc<Mutex<User>>, String> {
+        if self.find_user_by_username(&username).await.is_some() {
             return Err("Username is not available".to_owned());
         }
 
@@ -80,12 +81,12 @@ impl Repository for LegacyRepository {
         self.add_user_private(user)
     }
 
-    fn add_team<'a>(&'a self, team: Team) -> Option<u32> {
+    async fn add_team<'a>(&'a self, team: Team) -> Option<u32> {
         let new_team = self.add_team_private(team);
         new_team.and_then(|team| Ok(team.lock().unwrap().id)).ok()
     }
 
-    fn add_user_to_team<'a>(&'a self, team_name: &String, user_id: u32, manager: User) -> Result<(), String> {
+    async fn add_user_to_team<'a>(&'a self, team_name: &String, user_id: u32, manager: User) -> Result<(), String> {
         let teams_locked = self.teams.lock().unwrap();
         let users_locked = self.users.lock().unwrap();
 
@@ -96,7 +97,7 @@ impl Repository for LegacyRepository {
         team_locked.add_user(user.clone(), &manager)
     }
 
-    fn add_user<'a>(&'a self, session: &Session, mut user: User) -> MessageResponder<u32> {
+    async fn add_user<'a>(&'a self, session: &Session, mut user: User) -> MessageResponder<u32> {
         let user_mutex_guard = session.user.lock().unwrap();
         if !user_mutex_guard.is_admin {
             MessageResponder::create_with_message(Status::Forbidden, "You are not an admin".to_owned())
@@ -109,9 +110,9 @@ impl Repository for LegacyRepository {
         }
     }
 
-    fn login(&self, login_request: LoginRequest) -> Result<Session, String> {
+    async fn login<'a>(&'a self, login_request: LoginRequest<'a>) -> Result<Session, String> {
         let username = login_request.username.to_owned();
-        let user_opt = self.find_user_by_username(&username);
+        let user_opt = self.find_user_by_username(&username).await;
         let user = user_opt.ok_or("User does not exist")?;
 
         if user.lock().unwrap().verify_password(login_request.password) {
@@ -126,7 +127,7 @@ impl Repository for LegacyRepository {
         }
     }
 
-    fn logout(&self, session_id: &String) -> Result<(), String> {
+    async fn logout(&self, session_id: &String) -> Result<(), String> {
         let mut sessions = self.sessions.lock().unwrap();
         let index = sessions.iter().position(|x| &x.lock().unwrap().clone().id == session_id).ok_or("Session unknown".to_owned())?;
         sessions.remove(index);
@@ -138,7 +139,7 @@ impl Repository for LegacyRepository {
 impl LegacyRepository {
 
     #[allow(unused)]
-    pub fn init_repository() -> LegacyRepository {
+    pub async fn init_repository() -> LegacyRepository {
 
         let users = vec![];
 
@@ -158,10 +159,10 @@ impl LegacyRepository {
             teams: Arc::new(Mutex::new(vec![]))
         };
 
-        let flori = repository.create_and_add_user("roterkohl".to_owned(), "Flori".to_owned(), "Flori1234".to_owned(), true).unwrap();
-        let michi = repository.create_and_add_user("brutours.de".to_owned(), "Michi".to_owned(), "Michi1234".to_owned(), false).unwrap();
-        let franki = repository.create_and_add_user("dliwespf".to_owned(), "Franki".to_owned(), "Franki1234".to_owned(), false).unwrap();
-        let topheri = repository.create_and_add_user("topher".to_owned(), "Topher".to_owned(), "Topheri1234".to_owned(), true).unwrap();
+        let flori = repository.create_and_add_user("roterkohl".to_owned(), "Flori".to_owned(), "Flori1234".to_owned(), true).await.unwrap();
+        let michi = repository.create_and_add_user("brutours.de".to_owned(), "Michi".to_owned(), "Michi1234".to_owned(), false).await.unwrap();
+        let franki = repository.create_and_add_user("dliwespf".to_owned(), "Franki".to_owned(), "Franki1234".to_owned(), false).await.unwrap();
+        let topheri = repository.create_and_add_user("topher".to_owned(), "Topher".to_owned(), "Topheri1234".to_owned(), true).await.unwrap();
 
         let mut team_babes = Team::new(1, "Babes".to_owned(), flori.clone());
         let mut team_church = Team::new(2, "Church".to_owned(), michi.clone());
@@ -174,23 +175,24 @@ impl LegacyRepository {
         let franki_id = franki.lock().unwrap().id;
         let topheri_id = topheri.lock().unwrap().id;
 
-        repository.score(flori_id, 1);
-        repository.score(flori_id, 1);
-        repository.score(flori_id, 2);
-        repository.score(flori_id, 1);
-        repository.score(flori_id, 4);
-        repository.score(flori_id, 3);
+        join!(
+            repository.score(flori_id, 1),
+            repository.score(flori_id, 1),
+            repository.score(flori_id, 2),
+            repository.score(flori_id, 1),
+            repository.score(flori_id, 4),
+            repository.score(flori_id, 3),
+            repository.score(michi_id, 1),
+            repository.score(michi_id, 2),
+            repository.score(michi_id, 3),
+            repository.score(michi_id, 4),
 
-        repository.score(michi_id, 1);
-        repository.score(michi_id, 2);
-        repository.score(michi_id, 3);
-        repository.score(michi_id, 4);
-
-        repository.score(topheri_id, 4);
-        repository.score(topheri_id, 4);
-        repository.score(topheri_id, 4);
-        repository.score(topheri_id, 4);
-        repository.score(topheri_id, 4);
+            repository.score(topheri_id, 4),
+            repository.score(topheri_id, 4),
+            repository.score(topheri_id, 4),
+            repository.score(topheri_id, 4),
+            repository.score(topheri_id, 4)
+        );
 
         repository
     }
@@ -238,33 +240,35 @@ impl LegacyRepository {
 mod tests {
     use std::sync::{Arc, Mutex};
 
+    use rocket::futures::executor::block_on;
+
     use crate::model::{Session, session::LoginRequest, User, user::Team};
     use crate::repository::repository::Repository;
 
     use super::LegacyRepository;
 
     lazy_static! {
-        static ref REPOSITORY: LegacyRepository = LegacyRepository::init_repository();
-        static ref ADMIN_SESSION: Session = REPOSITORY.login(LoginRequest{username: "roterkohl", password: Some("Flori1234")}).unwrap();
-        static ref USER_SESSION: Session = REPOSITORY.login(LoginRequest{username: "dliwespf", password: Some("Franki1234")}).unwrap();
+        static ref REPOSITORY: LegacyRepository = block_on(LegacyRepository::init_repository());
+        static ref ADMIN_SESSION: Session = block_on(REPOSITORY.login(LoginRequest{username: "roterkohl", password: Some("Flori1234")})).unwrap();
+        static ref USER_SESSION: Session = block_on(REPOSITORY.login(LoginRequest{username: "dliwespf", password: Some("Franki1234")})).unwrap();
     }
     
     #[test]
     fn test_get_user_exists() {
-        let exists_opt = REPOSITORY.get_user(1);
+        let exists_opt = block_on(REPOSITORY.get_user(1));
         assert!(exists_opt.is_some());
         assert_eq!(1, exists_opt.unwrap().id);
     }
 
     #[test]
     fn test_get_user_does_not_exist() {
-        let does_not_exist_opt = REPOSITORY.get_user(10);
+        let does_not_exist_opt = block_on(REPOSITORY.get_user(10));
         assert!(does_not_exist_opt.is_none());
     }
 
     #[test]
     fn test_find_user_by_username_exists() {
-        let result = REPOSITORY.find_user_by_username(&"topher".to_owned());
+        let result = block_on(REPOSITORY.find_user_by_username(&"topher".to_owned()));
         assert!(result.is_some());
         let user_result = result.unwrap();
         let user = user_result.lock().unwrap();
@@ -273,32 +277,32 @@ mod tests {
 
     #[test]
     fn test_find_user_by_username_does_not_exist() {
-        let result = REPOSITORY.find_user_by_username(&"eduardLaser".to_owned());
+        let result = block_on(REPOSITORY.find_user_by_username(&"eduardLaser".to_owned()));
         assert!(result.is_none());
     }
 
     #[test]
     fn test_get_all_users() {
-        let result = LegacyRepository::init_repository().get_all_users();
+        let result = block_on(block_on(LegacyRepository::init_repository()).get_all_users());
         assert_eq!(4, result.len());
     }
 
     #[test]
     fn test_get_task_exists() {
-        let exists_opt = REPOSITORY.get_task(1);
+        let exists_opt = block_on(REPOSITORY.get_task(1));
         assert!(exists_opt.is_some());
         assert_eq!(1, exists_opt.unwrap().id);
     }
 
     #[test]
     fn test_get_task_does_not_exist() {
-        let does_not_exist_opt = REPOSITORY.get_task(4711);
+        let does_not_exist_opt = block_on(REPOSITORY.get_task(4711));
         assert!(does_not_exist_opt.is_none());
     }
 
     #[test]
     fn test_get_all_tasks() {
-        let result = LegacyRepository::init_repository().get_all_tasks();
+        let result = block_on(block_on(LegacyRepository::init_repository()).get_all_tasks());
         assert_eq!(4, result.len());
     }
 
@@ -317,44 +321,44 @@ mod tests {
 
     #[test]
     fn test_score_ok() {
-        let result = REPOSITORY.score(4, 4);
+        let result = block_on(REPOSITORY.score(4, 4));
         assert!(result.is_ok());
         assert_eq!(450, result.unwrap());
     }
 
     #[test]
     fn test_score_user_does_not_exist() {
-        let result = REPOSITORY.score(40, 4);
+        let result = block_on(REPOSITORY.score(40, 4));
         assert!(result.is_err());
         assert_eq!("User does not exist", result.unwrap_err());
     }
 
     #[test]
     fn test_score_task_does_not_exist() {
-        let result = REPOSITORY.score(4, 40);
+        let result = block_on(REPOSITORY.score(4, 40));
         assert!(result.is_err());
         assert_eq!("Task does not exist", result.unwrap_err());
     }
 
     #[test]
     fn test_score_task_is_disabled() {
-        let result = REPOSITORY.score(4, 2);
+        let result = block_on(REPOSITORY.score(4, 2));
         assert!(result.is_err());
         assert_eq!("Task is not enabled", result.unwrap_err());
     }
 
     #[test]
     fn test_create_and_add_user_ok() {
-        let result = REPOSITORY.create_and_add_user("Winston".to_owned(), "Wilson".to_owned(), "fml".to_owned(), false);
+        let result = block_on(REPOSITORY.create_and_add_user("Winston".to_owned(), "Wilson".to_owned(), "fml".to_owned(), false));
         assert!(result.is_ok());
         let new_user_id = result.unwrap().lock().unwrap().id;
-        let new_user_result = REPOSITORY.get_user(new_user_id);
+        let new_user_result = block_on(REPOSITORY.get_user(new_user_id));
         assert!(new_user_result.is_some());
     }
 
     #[test]
     fn test_create_and_add_user_name_clash() {
-        let result = REPOSITORY.create_and_add_user("dliwespf".to_owned(), "Wilson".to_owned(), "fml".to_owned(), false);
+        let result = block_on(REPOSITORY.create_and_add_user("dliwespf".to_owned(), "Wilson".to_owned(), "fml".to_owned(), false));
         let err = result.err();
         
         assert!(err.is_some());
@@ -363,7 +367,7 @@ mod tests {
 
     #[test]
     fn test_add_team() {
-        let repository = LegacyRepository::init_repository();
+        let repository = block_on(LegacyRepository::init_repository());
         let new_id = repository.add_team(Team::new(0, "newTeam".to_owned(), repository.get_user_unlocked(3).unwrap().clone()));
         //let team = repository.get_
     }
@@ -376,17 +380,17 @@ mod tests {
     #[test]
     fn test_add_user() {
         let newbie = User::new(0, "newbie".to_owned(), "Newbie".to_owned(), false);
-        let result = REPOSITORY.add_user(&ADMIN_SESSION, newbie).content;
+        let result = block_on(REPOSITORY.add_user(&ADMIN_SESSION, newbie)).content;
         let new_user_id = result.unwrap();
         assert!(result.is_some());
-        let new_user_result = REPOSITORY.get_user(new_user_id);
+        let new_user_result = block_on(REPOSITORY.get_user(new_user_id));
         assert!(new_user_result.is_some());
     }
 
     #[test]
     fn test_login_ok() {
         let login_request = LoginRequest { username: "roterkohl", password: Some("Flori1234") };
-        let result = REPOSITORY.login(login_request);
+        let result = block_on(REPOSITORY.login(login_request));
         assert!(result.is_ok());
         assert_eq!(30, result.unwrap().id.len());
     }
@@ -394,7 +398,7 @@ mod tests {
     #[test]
     fn test_login_missing_user() {
         let login_request = LoginRequest { username: "blauerkohl", password: Some("Flori1234") };
-        let result = REPOSITORY.login(login_request);
+        let result = block_on(REPOSITORY.login(login_request));
         assert!(result.is_err());
         let err = result.err();
         assert_eq!("User does not exist", err.unwrap());
@@ -403,7 +407,7 @@ mod tests {
     #[test]
     fn test_login_wrong_password() {
         let login_request = LoginRequest { username: "roterkohl", password: Some("Flori5678") };
-        let result = REPOSITORY.login(login_request);
+        let result = block_on(REPOSITORY.login(login_request));
         assert!(result.is_err());
         let err = result.err();
         assert_eq!("Password mismatch", err.unwrap());
@@ -411,13 +415,13 @@ mod tests {
 
     #[test]
     fn test_logout_ok() {
-        let result = REPOSITORY.logout(&USER_SESSION.id);
+        let result = block_on(REPOSITORY.logout(&USER_SESSION.id));
         assert!(result.is_ok())
     }
 
     #[test]
     fn test_logout_not_logged_in() {
-        let result = REPOSITORY.logout(&"&USER_SESSION.id".to_owned());
+        let result = block_on(REPOSITORY.logout(&"&USER_SESSION.id".to_owned()));
         assert!(result.is_err());
         assert_eq!("Session unknown", result.unwrap_err())
     }

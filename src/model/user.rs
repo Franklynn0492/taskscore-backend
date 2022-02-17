@@ -192,7 +192,7 @@ impl <'a> FromRequest<'a> for Team {
         }
 
         let user_id = user_id_parsed.unwrap();
-        let manager_opt = state.get_user(user_id);
+        let manager_opt = state.get_user(user_id).await;
 
         if manager_opt.is_none() {
             return Outcome::Failure((Status::NotFound, format!("UserId '{}' is unknown", user_id)));
