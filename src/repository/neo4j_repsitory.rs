@@ -1,7 +1,7 @@
 
 use std::{env, iter::FromIterator, convert::TryFrom, sync::{Arc}};
 
-use bolt_client::{Client, bolt_proto::{version::{V4_3, V4_2}, Message, message::{Success, Discard}, value::Node}, Metadata, Params};
+use bolt_client::{Client, bolt_proto::{version::{V4_3, V4_2}, Message, message::{Success, Discard, Record}, value::Node}, Metadata, Params};
 use dotenv::dotenv;
 use rocket::{tokio::{net::TcpStream, io::BufStream}, futures::lock::Mutex};
 use tokio_util::compat::*;
@@ -52,22 +52,9 @@ impl Neo4JRepository {
             println!("{}", err_msg);
         }
     }
-}
 
-#[async_trait]
-impl Repository for Neo4JRepository {
-    async fn get_user<'a>(&'a self, id: u32) -> Option<crate::model::User> {
-        todo!()
-    }
-    async fn find_user_by_username<'a>(&'a self, username: &String) -> Option<std::sync::Arc<std::sync::Mutex<crate::model::User>>> {
-        todo!()
-    }
+    async fn match_in_db(client: &mut Client<Compat<BufStream<TcpStream>>>, statement: &str, params: Params) -> Option<Vec<Record>> {
 
-    async fn find_user_by_username_const<'a>(&'a self, username: &String) -> Option<crate::model::User> {
-        let mut client = self.client.lock().await;
-
-        let statement = "MATCH (p:Person {username: $username}) RETURN p;";
-        let params = Params::from_iter(vec![("username", username.clone())]);
         let run_result = client.run(statement, Some(params), None).await;
 
         if run_result.is_err() {
@@ -91,11 +78,32 @@ impl Repository for Neo4JRepository {
             return None;
         }
 
+        Neo4JRepository::discard(client).await;
+        
+        Some(records)
+    }
+}
+
+#[async_trait]
+impl Repository for Neo4JRepository {
+    async fn get_user<'a>(&'a self, id: u32) -> Option<crate::model::User> {
+        todo!()
+    }
+    async fn find_user_by_username<'a>(&'a self, username: &String) -> Option<std::sync::Arc<std::sync::Mutex<crate::model::User>>> {
+        todo!()
+    }
+
+    async fn find_user_by_username_const<'a>(&'a self, username: &String) -> Option<crate::model::User> {
+        let mut client = self.client.lock().await;
+
+        let statement = "MATCH (p:Person {username: $username}) RETURN p;";
+        let params = Params::from_iter(vec![("username", username.clone())]);
+
+        let records = Neo4JRepository::match_in_db(&mut client, statement, params).await?;
+
         let node = Node::try_from(records[0].fields()[0].clone()).unwrap();
 
         let user = User::from(node);
-
-        Neo4JRepository::discard(&mut client).await;
 
         return Some(user)
     }
