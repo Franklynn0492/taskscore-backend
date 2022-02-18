@@ -3,9 +3,9 @@ use std::{env, iter::FromIterator, convert::TryFrom, sync::{Arc}};
 
 use bolt_client::{Client, bolt_proto::{version::{V4_3, V4_2}, Message, message::{Success, Discard, Record}, value::Node}, Metadata, Params};
 use dotenv::dotenv;
-use rocket::{tokio::{net::TcpStream, io::BufStream}, futures::lock::Mutex};
+use rocket::{tokio::{net::TcpStream, io::BufStream}, futures::lock::Mutex, http::Status};
 use tokio_util::compat::*;
-use crate::model::User;
+use crate::model::{User, MessageResponder};
 
 use super::{legacy_repository::{LegacyRepository, self}, repository::Repository};
 
@@ -143,7 +143,41 @@ impl Repository for Neo4JRepository {
     }
 
     async fn add_user<'a>(&'a self, session: &crate::model::Session, user: crate::model::User) -> crate::model::MessageResponder<u32> {
-        self.legacy_repo.add_user(session, user).await
+        // Todo: Check if admin session
+        // It is needed tochange the Mutex within it to the rocket version - and this is toom much work for me right now :)
+
+        let mut client = self.client.lock().await;
+
+        let statement = "CREATE (:Person {username: $username, display_name: $display_name, password: $pwd_hash_components, is_admin: $is_admin });";
+        let params = Params::from_iter(vec![
+            ("username", user.username),
+            ("display_name", user.display_name),
+            ("pwd_hash_components", user.pwd_hash_components.unwrap_or("".to_owned())),
+            ("is_admin", format!("{}", user.is_admin))]);
+
+        let run_result = client.run(statement, Some(params), None).await;
+        
+        let result;
+        if run_result.is_err() {
+            let err_msg = run_result.unwrap_err();
+            println!("{}", err_msg);
+            result = MessageResponder::create_with_message(Status::InternalServerError, "Error running create on db (run)".to_owned());
+        } else {
+
+            let metadata = Some(Metadata::from_iter(vec![("n", 1)]));
+            let pull_result = client.pull(metadata).await;
+            if pull_result.is_err() {
+                let err_msg = run_result.unwrap_err();
+                println!("{}", err_msg);
+                result = MessageResponder::create_with_message(Status::InternalServerError, "Error running create on db (run)".to_owned());
+            } else {
+                result = MessageResponder::create_ok(0);
+            }
+        }
+
+        Neo4JRepository::discard(&mut client).await;
+
+        result
     }
 
     async fn login<'a>(&'a self, login_request: crate::model::session::LoginRequest<'a>) -> Result<crate::model::Session, String> {

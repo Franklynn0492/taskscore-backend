@@ -1,3 +1,5 @@
+MATCH (n) DETACH DELETE n;
+
 CREATE (u_fl:Person {username: 'roterkohl', display_name: 'Flori', password: 'Flori1234', is_admin: true }),
 	(u_mi:Person {username: 'brutours.de', display_name: 'Michi', password: 'Michi1234' }),
 	(u_fr:Person {username: 'dliwespf', display_name: 'Franki', password: 'Franki1234' }),

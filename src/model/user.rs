@@ -23,7 +23,7 @@ pub struct User {
     pub scores: Vec<Score>,
     
     #[serde(skip_serializing)]
-    pwd_hash_components: Option<String>,
+    pub pwd_hash_components: Option<String>,
 }
 
 impl User {
