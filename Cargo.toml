@@ -14,14 +14,18 @@ opt-level = 3
 
 [dependencies]
 
-rand = "0.8.4"
-bcrypt = "0.10.1"
-serde_json = "1.0"
-serde = {version ="1.0", features = ["derive", "rc"]}
-async-trait = "0.1.50"
-chrono = { version = "0.4", features = ["serde"] }
+rand = "0.8.4"          # Random number generation
+bcrypt = "0.10.1"       # Password hash generation
+serde_json = "1.0"      # JSON (de-)serialization
+serde = {version ="1.0", features = ["derive", "rc"]}   # general (de-) serialzation
+async-trait = "0.1.50"  # Asynchronous programming
+chrono = { version = "0.4", features = ["serde"] }  # Timestamp (de-)serialization
+dotenv = "0.15.0"       # Environment configuration handling
 
-[dependencies.rocket]
+[dev-dependencies]
+lazy_static = "1.4.0"   # Lazy global value initialization
+
+[dependencies.rocket]   # Web framework
 tag = "v0.5.0-rc.1"
 git = "https://github.com/SergioBenitez/Rocket"
 features = ["json"]

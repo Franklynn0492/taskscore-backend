@@ -5,13 +5,14 @@ use rocket::{Request, Response, http::{Header, Status}, response::Responder};
 
 
 pub struct MessageResponder<A> where A: ToString {
-    content: Option<A>,
+    pub content: Option<A>,
     message: Option<String>,
     status: Status
 }
 
 impl <A> MessageResponder<A> where A: ToString {
-    pub fn create(status: Status, content: A, message: String) -> MessageResponder<A> {
+    #[allow(unused)]
+    pub fn create(_status: Status, content: A, message: String) -> MessageResponder<A> {
         MessageResponder{ content: Some(content), message: Some(message), status: Status::Ok }
     }
 
@@ -23,13 +24,14 @@ impl <A> MessageResponder<A> where A: ToString {
         MessageResponder{ content: Some(content), message: None, status: Status::Ok }
     }
 
+    #[allow(unused)]
     pub fn create_ok_empty() -> MessageResponder<A> {
         MessageResponder{ content: None, message: None, status: Status::Ok }
     }
 }
 
 impl <'r, 'o: 'r, A> Responder<'r, 'o> for MessageResponder<A> where A: ToString {
-    fn respond_to(self, request: &'r Request<'_>) ->  rocket::response::Result<'o> {
+    fn respond_to(self, _request: &'r Request<'_>) ->  rocket::response::Result<'o> {
 
         let mut response = Response::new();
         response.set_status(self.status);
