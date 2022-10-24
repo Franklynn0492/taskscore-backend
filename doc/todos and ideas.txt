@@ -1,0 +1,9 @@
+Tasks:
+- Make tasks limitable (n times per time unit)
+- can be fulfilled by siongle users or teams
+- points can decline if you win a task multiple times
+
+Trophies
+- Can be achived when a condition is met
+- If the condition is met again the trophy gets leveled up 
+- Can be won by teams and single users
