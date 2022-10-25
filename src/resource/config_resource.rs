@@ -1,5 +1,6 @@
 use dotenv::dotenv;
 use rocket::{serde::json::Json, http::Status};
+use rocket_okapi::openapi;
 use std::env::{self};
 
 use crate::model::Session;

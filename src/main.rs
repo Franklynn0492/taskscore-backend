@@ -7,6 +7,7 @@ use resource::score_resource::*;
 use resource::session_resource::*;
 use resource::task_resource::*;
 use resource::user_resource::*;
+use rocket_okapi::JsonSchema;
 
 mod model;
 mod repository;

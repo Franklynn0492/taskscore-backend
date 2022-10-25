@@ -1,13 +1,13 @@
 use std::io::Cursor;
 
-use rocket::{Request, Response, http::{Header, Status}, response::Responder};
-
-
+use okapi::{openapi3::Responses, Map};
+use rocket::{Request, Response, http::{Header, Status}, response::{Responder}};
+use rocket_okapi::{response::{OpenApiResponderInner}, gen::OpenApiGenerator, OpenApiError};
 
 pub struct MessageResponder<A> where A: ToString {
     pub content: Option<A>,
     message: Option<String>,
-    status: Status
+    status: Status,
 }
 
 impl <A> MessageResponder<A> where A: ToString {
@@ -30,8 +30,8 @@ impl <A> MessageResponder<A> where A: ToString {
     }
 }
 
-impl <'r, 'o: 'r, A> Responder<'r, 'o> for MessageResponder<A> where A: ToString {
-    fn respond_to(self, _request: &'r Request<'_>) ->  rocket::response::Result<'o> {
+impl <'r, A> Responder<'r, 'static> for MessageResponder<A> where A: ToString {
+    fn respond_to(self, _request: &'r Request<'_>) ->  rocket::response::Result<'static> {
 
         let mut response = Response::new();
         response.set_status(self.status);
@@ -45,5 +45,50 @@ impl <'r, 'o: 'r, A> Responder<'r, 'o> for MessageResponder<A> where A: ToString
         }
 
         Ok(response)
+    }
+}
+
+impl <A> OpenApiResponderInner for MessageResponder<A> where A: ToString {
+    fn responses(_generator: &mut OpenApiGenerator) -> Result<Responses, OpenApiError> {
+        use rocket_okapi::okapi::openapi3::{RefOr, Response as OpenApiReponse};
+
+        let mut responses = Map::new();
+        responses.insert(
+            "400".to_string(),
+            RefOr::Object(OpenApiReponse {
+                description: "\
+                # [400 Bad Request](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400)\n\
+                The request given is wrongly formatted or data asked could not be fulfilled. \
+                "
+                .to_string(),
+                ..Default::default()
+            }),
+        );
+        responses.insert(
+            "404".to_string(),
+            RefOr::Object(OpenApiReponse {
+                description: "\
+                # [404 Not Found](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404)\n\
+                This response is given when you request a resource that does not exists.\
+                "
+                .to_string(),
+                ..Default::default()
+            }),
+        );
+        responses.insert(
+            "500".to_string(),
+            RefOr::Object(OpenApiReponse {
+                description: "\
+                # [500 Internal Server Error](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500)\n\
+                This response is given when something wend wrong on the server. \
+                ".to_string(),
+                ..Default::default()
+            }),
+        );
+
+        Ok(Responses {
+            responses,
+            ..Default::default()
+        })
     }
 }
