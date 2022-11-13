@@ -2,7 +2,7 @@
 name = "TaskScore"
 version = "0.1.0"
 authors = ["Frank Langner <frank.langner@posteo.de>"]
-edition = "2018"
+edition = "2021"
 
 [profile.dev]
 opt-level = 0
