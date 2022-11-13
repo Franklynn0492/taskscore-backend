@@ -2,7 +2,7 @@
 name = "TaskScore"
 version = "0.1.0"
 authors = ["Frank Langner <frank.langner@posteo.de>"]
-edition = "2018"
+edition = "2021"
 
 [profile.dev]
 opt-level = 0
@@ -15,7 +15,7 @@ opt-level = 3
 [dependencies]
 
 rand = "0.8.4"          # Random number generation
-bcrypt = "0.10.1"       # Password hash generation
+bcrypt = "0.13.0"       # Password hash generation
 serde_json = "1.0"      # JSON (de-)serialization
 serde = {version ="1.0", features = ["derive", "rc"]}   # general (de-) serialzation
 async-trait = "0.1.50"  # Asynchronous programming
