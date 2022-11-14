@@ -7,7 +7,9 @@ use resource::score_resource::*;
 use resource::session_resource::*;
 use resource::task_resource::*;
 use resource::user_resource::*;
-use rocket_okapi::JsonSchema;
+use resource::response::Response;
+use rocket_okapi::{openapi, openapi_get_routes, JsonSchema};
+use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
 
 mod model;
 mod repository;
@@ -20,9 +22,10 @@ mod resource;
 extern crate lazy_static;
 extern crate dotenv;
 
+#[openapi]
 #[get("/")]
-fn hello() -> Json<String> {
-    Json("Hello, world!".to_owned())
+fn hello() -> Json<Response<String>> {
+    Json(Response{data: "Hello, world!".to_owned()})
 }
 
 #[catch(404)]
@@ -37,7 +40,8 @@ async fn main() {
     let _ = rocket::build()
 
     .manage(Repository::init_repository())
-    .mount(context_root, routes![hello,
+    .mount(context_root, openapi_get_routes![hello])
+    .mount(context_root, routes![
         get_user, get_current_user, get_all_users, add_user,
         get_task, get_all_tasks,
         score, get_score_of_user, get_score_of_current_user,
