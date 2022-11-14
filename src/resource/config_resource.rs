@@ -1,18 +1,19 @@
 use dotenv::dotenv;
-use rocket::{serde::json::Json, http::Status};
+use rocket::{http::Status};
 use rocket_okapi::openapi;
 use std::env::{self};
 
-use crate::model::Session;
+use crate::model::{Session, http::KeyValueListResponder};
 
+#[openapi]
 #[get("/config")]
-pub fn get_config<'a>(session: Session) -> (Status, Json<Vec<(String, String)>>) {
+pub fn get_config<'a>(session: Session) -> KeyValueListResponder<String, String> {
     if !session.user.lock().unwrap().is_admin {
-        return (Status::Forbidden, Json(vec![]));
+        return KeyValueListResponder::create(Status::Forbidden, vec![]);
     }
 
     dotenv().ok();
     let config_vec = env::vars().collect();
 
-    (Status::Ok, Json(config_vec))
+    KeyValueListResponder::create_ok(config_vec)
 }

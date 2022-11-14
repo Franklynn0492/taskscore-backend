@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, Utc};
 use rocket::{Request, http::Status, request::FromRequest, request::Outcome};
+use rocket_okapi::OpenApiFromRequest;
 
 use crate::repository::repository::Repository;
 
@@ -13,6 +14,7 @@ const PASSWORD_LEN: usize = 30;
 
 #[derive(serde::Serialize)]
 #[derive(Clone)]
+#[derive(OpenApiFromRequest)]
 pub struct Session {
     pub id: String,
     pub user: Arc<Mutex<User>>,

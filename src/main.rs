@@ -40,12 +40,12 @@ async fn main() {
     let _ = rocket::build()
 
     .manage(Repository::init_repository())
-    .mount(context_root, openapi_get_routes![hello])
+    .mount(context_root, openapi_get_routes![hello,
+        get_config,])
     .mount(context_root, routes![
         get_user, get_current_user, get_all_users, add_user,
         get_task, get_all_tasks,
         score, get_score_of_user, get_score_of_current_user,
-        get_config,
         login, get_current_session, logout])
     .register(context_root, catchers![not_found])
     .launch()
