@@ -1,0 +1,5 @@
+# Pull image
+docker pull neo4j
+
+# Docker container creation
+docker run -d --name neo4j --publish=7687:7687 --restart unless-stopped --volume=$HOME/neo4j/data:/data neo4j &

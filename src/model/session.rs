@@ -5,6 +5,8 @@ use rocket::{Request, http::Status, request::FromRequest, request::Outcome};
 use rocket_okapi::{request::{OpenApiFromRequest, RequestHeaderInput}, gen::OpenApiGenerator};
 use schemars::{JsonSchema};
 
+use crate::repository::legacy_repository::LegacyRepository;
+use crate::repository::neo4j_repsitory::Neo4JRepository;
 use crate::repository::repository::Repository;
 
 use super::User;
@@ -55,7 +57,7 @@ impl <'a> FromRequest<'a> for Session {
     type Error = String;
 
     async fn from_request(request: &'a Request<'_>) -> Outcome<Self, Self::Error> {
-        let repository = request.rocket().state::<Repository>();
+        let repository = request.rocket().state::<Neo4JRepository>();
         if repository.is_none() {
             return Outcome::Failure((Status::InternalServerError, "Missing status".to_owned()))
         }
@@ -69,7 +71,7 @@ impl <'a> FromRequest<'a> for Session {
         let cookie = cookie.unwrap();
 
         let sid = cookie.value().to_owned();
-        let session = repository.get_session(&sid);
+        let session = repository.get_session(&sid).await;
         if session.is_none() {
             return Outcome::Failure((Status::Unauthorized, "Session not available".to_owned()))
         }

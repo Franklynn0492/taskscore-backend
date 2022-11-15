@@ -1,4 +1,5 @@
-use repository::repository::Repository;
+use repository::neo4j_repsitory::Neo4JRepository;
+use rocket::futures::executor::block_on;
 use rocket::response::status::NotFound;
 use rocket::serde::json::Json;
 
@@ -42,9 +43,9 @@ async fn main() {
     .manage(Repository::init_repository())
     .mount(context_root, openapi_get_routes![hello,
         get_config,
-        score, get_score_of_user, get_score_of_current_user,
+        score, get_score_of_user, get_score_of_current_user
         login, get_current_session, logout,
-        get_user, get_current_user, get_all_users, add_user,
+        get_user, get_current_user, get_all_users, add_user, get_user_by_username,,
         get_task, get_all_tasks])
 //    .mount(context_root, routes![])
     .register(context_root, catchers![not_found])

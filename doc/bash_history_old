@@ -1,0 +1,438 @@
+sudo apt-get install virtualbox-guest-dkms virtualbox-guest-utils virtualbox-guest-x11
+sudo apt-get install virtualbox-guest-additions-iso 
+sudo add-apt-repository ppa:linuxuprising/java
+sudo apt update
+sudo apt install oracle-java16-installer 
+sudo apt install oracle-java16-set-default 
+java -version
+sudo shutdown -P 0
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+sudo apt install curl
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+mkdir -p rust
+cd rust 
+cargo init hello
+cd hello/
+cargo run
+exit
+sudo mkdir -p /opt/SmartBear/SoapUI-5.6.0
+sudo chown -R user /opt/SmartBear
+sudo apt-get install qt5ct
+chmod u+x ~/Downloads/SoapUI-x64-5.6.0.sh 
+~/Downloads/SoapUI-x64-5.6.0.sh 
+cargo run
+~/Downloads/SoapUI-x64-5.6.0.sh 
+cargo run
+cd "/home/user/Rust Brown Bag"
+cargo init FizzBuzz
+cd FizzBuzz/
+cargo run
+cargo clean
+cargo run
+cargo clean
+git config --global user.email "you@example.com"
+git config --global user.name "Your Name"
+cat ~/.bash_history 
+cd "/home/user/Rust Brown Bag"
+cargo init hello
+cd hello/
+cargo run
+cd ..
+rm hello/
+rm -r hello/
+cargo init hello
+rm -r hello/
+cargo init hello
+rm -r hello/
+cd ..
+rm -r hello/
+rm -r rust/
+cargo new minigrep
+cargo run
+cargo run asd dsa fgh hgf
+cargo run asd dsa
+cargo run /etc/hosts asd
+cargo run --release /etc/hosts asd
+cargo run /etc/hosts asd
+cargo run /etc/hosts asd hjk
+cargo run /etc/hosts asd hjkm ztujgjh
+cargo run 
+cargo run /etc/hosts asd
+cat /etc/hosts
+cargo run /etc/hosts ip6
+cargo build
+cargo run /etc/hosts ip6
+cargo build
+cargo run /etc/hosts ip6
+cargo run /etc/hosts ip6 /home/user/.vscode/extensions/vadimcn.vscode-lldb-1.6.4/adapter/codelldb terminal-agent --port=38703 
+cargo run /home/user/Rust Brown Bag/Example projects/minigrep/logs WSVR
+cargo run /home/user/Rust\ Brown\ Bag/Example\ projects/minigrep/logs WSVR
+ls
+ls target/
+cargo run /home/user/Rust\ Brown\ Bag/Example\ projects/minigrep/logs WSVR /home/user/.vscode/extensions/vadimcn.vscode-lldb-1.6.4/adapter/codelldb terminal-agent --port=32789 
+cargo run "/home/user/Rust Brown Bag/Example projects/minigrep/logs" WSVR
+ls "/home/user/Rust Brown Bag/Example projects/minigrep/logs"
+cargo build
+cargo run "/home/user/Rust Brown Bag/Example projects/minigrep/logs" WSVR
+cargo run "/home/user/Rust Brown Bag/Example projects/minigrep/logs" AppServer
+sudo apt-get update
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+uname -a
+echo   "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get install     apt-transport-https     ca-certificates     curl     gnupg     lsb-release
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io
+docker run hello-world
+sudo docker run hello-world
+sudo groupadd docker
+sudo usermod -aG docker user
+docker run hello-world
+docker pull postgres
+docker run --name postgres-base -e POSTGRES_PASSWORD=G3n3ricPwd -d postgres
+docker ps
+java -version
+sudo curl https://www.pgadmin.org/static/packages_pgadmin_org.pub | sudo apt-key add
+sudo sh -c 'echo "deb https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/$(lsb_release -cs) pgadmin4 main" > /etc/apt/sources.list.d/pgadmin4.list && apt update'
+sudo apt install pgadmin4
+docker ps
+sudo netstat -tulpn | grep LISTEN
+sudo apt install netstat-nat
+sudo netstat -tulpn | grep LISTEN
+lsof 
+sudo ss -tulpn
+docker stop postgres-base
+docker start postgres-base -p 5432:5432
+docker run --name postgres-base -e POSTGRES_PASSWORD=G3n3ricPwd -d postgres -p 5432:5432
+docker remove postgres-base
+docker rm postgres-base
+docker run --name postgres-base -e POSTGRES_PASSWORD=G3n3ricPwd -d postgres -p 5432:5432
+sudo ss -tulpn
+docker ps
+docker run --name postgres-base -e POSTGRES_PASSWORD=G3n3ricPwd -d postgres -p5432:5432
+docker rm postgres-base
+docker run --name postgres-base -e POSTGRES_PASSWORD=G3n3ricPwd -d postgres -p5432:5432
+docker ps
+docker rm postgres-base
+docker run --name postgres-base -e POSTGRES_PASSWORD=G3n3ricPwd -d postgres -P 5432:5432
+docker ps
+port
+docker rm postgres-base
+docker run --name postgres-base -e POSTGRES_PASSWORD=G3n3ricPwd -d postgres -P
+docker ps -a
+sudo ss -tulpn
+docker ps
+docker rm postgres-base
+docker stop postgres-base
+docker rm postgres-base
+docker run -P --name postgres-base -e POSTGRES_PASSWORD=G3n3ricPwd -d postgres
+docker ps
+docker stop postgres-base
+docker rm postgres-base
+docker run -p 5432:5432 --name postgres-base -e POSTGRES_PASSWORD=G3n3ricPwd -d postgres
+docker ps
+docker stop postgres-base
+docker start postgres-base
+~/payara5/bin/asadmin start-domain
+javac --version
+which javac
+~/payara5/bin/asadmin start-domain
+which javac
+ls -la /usr/bin/javac
+ls -la /etc/alternatives/javac
+ls -la /etc/alternatives/java
+ls -la /etc/alternatives/java*
+ls -la /usr/lib/jvm/java*
+sudo update-alternatives --config java
+sudo update-alternatives --config javac
+ls -la /usr/lib/jvm/java*
+ls -la /etc/alternatives/java*
+sudo update-alternatives --config javadoc 
+sudo update-alternatives --config javap
+~/payara5/bin/asadmin start-domain
+which javac
+javac --version
+sudo update-alternatives --config java
+sudo update-alternatives --config javac
+sudo update-alternatives --config javap
+sudo update-alternatives --config javadoc 
+~/payara5/bin/asadmin start-domain
+~/payara5/bin/asadmin stop-domain
+~/payara5/bin/asadmin add-library ~/Downloads/postgresql-42.2.22.jar 
+~/payara5/bin/asadmin start-domain
+~/payara5/bin/asadmin add-library ~/Downloads/postgresql-42.2.22.jar 
+~/payara5/bin/asadmin stop-domain
+~/payara5/bin/asadmin start-domain
+~/payara5/bin/asadmin add-library ~/Downloads/postgresql-42.2.22.jar 
+sudo update-alternatives --config java
+ls ~
+ls ~/Desktop/
+ls -l ~/Desktop/
+ls -l /home/user/.local/share/applications/SoapUI-5.6.0-0.desktop
+vi /home/user/.local/share/applications/SoapUI-5.6.0-0.desktop
+ls -l /opt/SmartBear/SoapUI-5.6.0/lib/j
+/opt/SmartBear/SoapUI-5.6.0/uninstall 
+Downloads/SoapUI-x64-5.6.0.sh 
+/opt/SmartBear/SoapUI-5.6.0/uninstall 
+ls -l Downloads/
+chmod u+x Downloads/SoapUI-x64-5.5.0.sh 
+Downloads/SoapUI-x64-5.5.0.sh 
+~/payara5/bin/asadmin stop-domain
+cd ..
+cargo init stars
+cd stars
+cargo run
+cargo build
+cargo clean
+cargo build
+rustup install nightly
+cargo build
+rustup default nightly
+cargo build
+cargo update && cargo clean
+cargo build
+cargo run
+cargo --release run
+cargo run --release 
+cargo install diesel_cli
+cargo install diesel_cli --no-default-features --features postgres
+apt-cache search libpq
+cargo install diesel_cli --no-default-features --features postgres
+diesel setup
+cargo install diesel_cli_ext
+diesel print-schema > src/schema.rs
+diesel print-schema
+diesel print-schema > src/schema.rs
+diesel_ext > src/models.rs
+cargo run
+curl 127.0.0.1:8000
+top
+curl 127.0.0.1:8000
+curl 127.0.0.1:8000/constellation?id=3
+curl 127.0.0.1:8000/constellation/all
+docker start postgres-base
+sudo apt-get install libpq-dev
+sudo apt-get install libpq-dev 
+sudo apt-get install libpq5=13.3-0ubuntu0.21.04.1
+sudo apt-get install libpq-dev 
+y
+"/home/user/Rust Brown Bag/Example projects/stars/target/debug/stars"
+cp "/home/user/Rust Brown Bag/Example projects/stars/.env" ~/
+"/home/user/Rust Brown Bag/Example projects/stars/target/debug/stars"
+"/home/user/Rust Brown Bag/Example projects/stars/target/release/stars" 
+"/home/user/Rust Brown Bag/Example projects/stars/target/debug/stars"
+~/payara5/bin/asadmin start-domain
+~/payara5/bin/asadmin stop-domain
+~/payara5/bin/asadmin start-domain
+~/payara5/bin/asadmin stop-domain
+~/payara5/bin/asadmin start-domain
+cargo build
+cargo build --release
+docker start postgres-base
+cd Rust\ Brown\ Bag/Example\ projects/
+cargo init hello
+cargo build
+cargo run
+cargo build
+cargo run
+cd ..
+cargo init guess
+cargo run
+cd FizzBuzz/
+cargo run
+cargo test
+cargo run
+cargo run "/home/user/Rust Brown Bag/Example projects/minigrep/logs" AppServer
+sudo mkdir /media/user
+sudo chown user /media/user
+sudo chmod 777 /media/user
+sudo chmod 777 /media/user/langnefr
+sudo adduser user vboxsf
+cd target/debug/
+mv stars stars_without_connpool
+ls
+cd ../../
+cd target/release/
+mv stars stars_without_connpool
+cd ../../
+cargo run
+ls
+"target/debug/stars without connpool"
+"target/debug/stars_without_connpool"
+cargo run
+"target/release/stars_without_connpool"
+cargo run --release
+cd target/debug/
+mv stars stars_with_connpool
+cd ../../
+cd target/debug/
+mv stars stars_with_connpool
+cd ../../
+cd target/release/
+mv stars stars_with_connpool
+cd ../../
+docker start postgres-base
+cargo run --release
+cargo build --release
+cargo run --release
+/home/user/payara5/bin/asadmin start-domain
+docker start postgres-base
+docker stop postgres-base
+docker start postgres-base
+/home/user/payara5/bin/asadmin stop-domain
+docker restart postgres-base
+/home/user/payara5/bin/asadmin start-domain
+/home/user/payara5/bin/asadmin stop-domain
+/home/user/Rust\ Brown\ Bag/Example\ projects/stars/target/debug/stars_with_connpool 
+/home/user/Rust\ Brown\ Bag/Example\ projects/stars/target/release/stars_with_connpool 
+/home/user/payara5/bin/asadmin start-domain
+docker stop postgres-base
+/home/user/payara5/bin/asadmin stop-domain
+cargo run --release
+/home/user/payara5/bin/asadmin start-domain
+/home/user/payara5/bin/asadmin stop-domain
+docker stop postgres-base
+docker start postgres-base
+cargo run --release
+cargo run
+cargo run --release
+cargo run
+cargo run --release
+/home/user/payara5/bin/asadmin start-domain
+/home/user/payara5/bin/asadmin stop-domain
+docker stop postgres-base
+sudo apt-get update
+sudo apt-get upgrade
+diesel
+echo DATABASE_URL=postgres://hive:@localhost/hive > .env
+diesel setup
+diesel migrations generate create_user_table
+diesel migration generate create_user_table
+diesel migration run
+diesel migration redo
+docker stop postgres-base
+docker start postgres-base
+cd ~
+mkdir -p projects/hive
+cd projects/4
+cd projects/
+rm -r hive/
+cargo init hive
+rm -r hive/
+mkdir hive
+cd hive
+git init
+cargo init hive-server
+ls -l hive-server/
+cargo init -lib hive-common
+cargo init --lib hive-common
+cd hive-server/
+cat ~/.bash_history 
+cargo init
+cargo build
+ls
+cargo run
+cargo build
+target/debug/TaskScore 
+cargo run
+cargo build
+cargo run
+cargo build
+cargo run
+cargo build
+cargo run
+cargo build
+cd ../Workshop/
+cargo init 01_Basics
+cargo init A_Basics
+cargo run
+cd ..
+cargo init B_Structs_Traits
+cd Workshop/B_Structs_Traits/
+cargo run
+cargo build
+cd ../TaskScore/
+cargo build
+cd ../TaskScore/
+cargo build
+cargo run
+cargo build
+cargo clean build
+cargo clean
+cargo build
+cargo run
+./target/debug/TaskScore 
+cargo run --release
+cargo run
+cargo build
+cargo run
+ifconfig
+ip addr show eth0 | grep inet | awk '{ print $2; }' | sed 's/\/.*$//'
+sudo apt install net-tools
+ifconfig
+sudo fdisk -l
+cargo run
+curl http://localhost:8000/TaskScore/rest/user/all
+sudo apt-get install     ca-certificates     curl     gnupg     lsb-release
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+sudo systemctl start docker
+cargo install cross
+cross build --target x86_64-unknown-linux-gnu
+ls
+target/x86_64-unknown-linux-gnu/debug/TaskScore 
+cargo run
+cargo build
+cargo test
+cd projects/
+mv TaskScore/ TaskScore_old
+cargo test
+sudo su
+rustup update
+df
+cargo test
+cargo run
+cargo run --release
+cross build --target x86_64-unknown-linux-gnu
+cargo clean
+cat ./.bash_history | grep cargo
+cat ./.bash_history | grep cross
+df
+cd Downloads/
+chmod u+x neo4j-desktop-1.4.12-x86_64.AppImage
+./neo4j-desktop-1.4.12-x86_64.AppImage 
+ls
+./neo4j-desktop-1.4.12-x86_64.AppImage 
+rustc -v
+rustc -h
+rustc -V
+rustup update
+cargo test
+cargo clean
+cargo build
+cargo test
+cargo build
+cargo run
+netstat -nlp
+cargo run
+cargo run /home/user/.vscode/extensions/vadimcn.vscode-lldb-1.6.10/adapter/codelldb terminal-agent --port=36331 
+cargo run
+cargo test
+cargo run
+export RUST_BACKTRACE=1
+cargo run
+cargo build
+cargo run
+cargo build
+cargo test
+sudo vi /etc/profile.d/environment.sh
+cat /etc/profile.d/environment.sh 
+cargo test
+mkdir -p ~/Shares
+sudo /media/user/VBox_GAs_6.1.34/VBoxLinuxAdditions.run 
+sudo reboot
+sudo ./script.sh 
+sudo dpkg --configure -a
+sudo ./script.sh 
+sudo reboot
+sudo ./script.sh 
+sudo /media/user/VBox_GAs_6.1.34/VBoxLinuxAdditions.run 
