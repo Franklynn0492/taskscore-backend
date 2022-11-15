@@ -31,6 +31,7 @@ rocket = { version = "0.5.0-rc.2", default-features = false, features = ["json"]
 #okapi = { version = "0.5.0", features = ["derive_json_schema"] }
 bolt-client = "0.10.1"  # Neo4J connection
 tokio-util = {version = "0.7.0", features = ["compat"]}  # Utility features fort tokio async
+futures = "0.3.25"
 
 [dev-dependencies]
 lazy_static = "1.4.0"   # Lazy global value initialization

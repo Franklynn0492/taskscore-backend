@@ -1,4 +1,3 @@
-use rocket::futures::executor::block_on;
 use rocket::serde::json::Json;
 use rocket::State;
 use rocket_okapi::openapi;
@@ -13,8 +12,9 @@ pub async fn get_user<'a>(id: u32, repository: &State<Neo4JRepository>) -> Optio
     repository.get_user(id).await.map_or(None, |user| Some(Json(user)))
 }
 
+#[openapi]
 #[get("/user/username/<username>")]
-pub async fn get_user_by_username<'a>(username: String, repository: &'a State<Neo4JRepository>) -> Option<Json<User>> {
+pub async fn get_user_by_username<'a>(username: String, repository: &State<Neo4JRepository>) -> Option<Json<User>> {
     repository.find_user_by_username_const(&username).await.map_or(None, |user| Some(Json(user)))
 }
 

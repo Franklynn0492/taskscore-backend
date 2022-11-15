@@ -1,7 +1,8 @@
 
 use std::{sync::{Mutex, Arc}};
 
-use rocket::{fairing::Result, http::Status, futures::join};
+use rocket::{fairing::Result, http::Status};
+use futures::join;
 
 use crate::model::{MessageResponder, Session, Task, User, session::{LoginRequest}, user::{Team}};
 
