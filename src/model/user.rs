@@ -3,13 +3,14 @@ use std::{sync::{Arc, Mutex}, hash::Hash, collections::HashSet};
 
 use bcrypt::{DEFAULT_COST};
 use rocket::{Request, request::Outcome, http::Status, request::{ FromRequest}};
+use rocket_okapi::OpenApiFromRequest;
 use schemars::JsonSchema;
 
 use crate::repository::repository::Repository;
 
 use super::{Task, Score};
 
-#[derive(serde::Serialize, Clone, JsonSchema)]
+#[derive(serde::Serialize, Clone, JsonSchema, OpenApiFromRequest)]
 pub struct User {
     pub id: u32,
     pub username: String,

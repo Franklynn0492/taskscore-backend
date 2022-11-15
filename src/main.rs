@@ -43,10 +43,10 @@ async fn main() {
     .mount(context_root, openapi_get_routes![hello,
         get_config,
         score, get_score_of_user, get_score_of_current_user,
-        login, get_current_session, logout,])
-    .mount(context_root, routes![
+        login, get_current_session, logout,
         get_user, get_current_user, get_all_users, add_user,
         get_task, get_all_tasks])
+//    .mount(context_root, routes![])
     .register(context_root, catchers![not_found])
     .launch()
     .await;
