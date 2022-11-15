@@ -2,7 +2,8 @@ use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, Utc};
 use rocket::{Request, http::Status, request::FromRequest, request::Outcome};
-use rocket_okapi::OpenApiFromRequest;
+use rocket_okapi::{request::{OpenApiFromRequest, RequestHeaderInput}, gen::OpenApiGenerator};
+use schemars::{JsonSchema, JsonSchema_repr};
 
 use crate::repository::repository::Repository;
 
@@ -12,9 +13,7 @@ use rand::Rng;
 const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 const PASSWORD_LEN: usize = 30;
 
-#[derive(serde::Serialize)]
-#[derive(Clone)]
-#[derive(OpenApiFromRequest)]
+#[derive(serde::Serialize, Clone, OpenApiFromRequest, JsonSchema)]
 pub struct Session {
     pub id: String,
     pub user: Arc<Mutex<User>>,
@@ -81,8 +80,7 @@ impl <'a> FromRequest<'a> for Session {
     }
 }
 
-#[derive(serde::Serialize)]
-#[derive(Clone)]
+#[derive(serde::Serialize, Clone)]
 pub struct LoginRequest<'b> {
     pub username: &'b str,
     pub password: Option<&'b str>,
@@ -103,5 +101,16 @@ impl <'a> FromRequest<'a> for LoginRequest<'a> {
             },
             None => Outcome::Failure((Status::BadRequest, "Username is required".to_owned()))
         }
+    }
+}
+
+// I could not find a way to derive this because of the lifetime parameter
+impl<'a> OpenApiFromRequest<'a> for LoginRequest<'a> {
+    fn from_request_input(
+        _gen: &mut OpenApiGenerator,
+        _name: String,
+        _required: bool,
+    ) -> rocket_okapi::Result<RequestHeaderInput> {
+        Ok(RequestHeaderInput::None)
     }
 }

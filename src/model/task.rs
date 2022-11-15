@@ -1,8 +1,8 @@
 
 use chrono::{DateTime, Utc};
+use rocket_okapi::okapi::schemars::JsonSchema;
 
-#[derive(serde::Serialize)]
-#[derive(Clone)]
+#[derive(serde::Serialize, Clone, JsonSchema)]
 pub struct Task {
     pub id: u32,
     pub name: String,
@@ -10,8 +10,7 @@ pub struct Task {
     pub enabled: bool,
 }
 
-#[derive(serde::Serialize)]
-#[derive(Clone)]
+#[derive(serde::Serialize, Clone, JsonSchema)]
 pub struct Score {
     pub task: Task,
     pub points: u16,

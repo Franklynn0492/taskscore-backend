@@ -3,13 +3,13 @@ use std::{sync::{Arc, Mutex}, hash::Hash, collections::HashSet};
 
 use bcrypt::{DEFAULT_COST};
 use rocket::{Request, request::Outcome, http::Status, request::{ FromRequest}};
+use schemars::JsonSchema;
 
 use crate::repository::repository::Repository;
 
 use super::{Task, Score};
 
-#[derive(serde::Serialize)]
-#[derive(Clone)]
+#[derive(serde::Serialize, Clone, JsonSchema)]
 pub struct User {
     pub id: u32,
     pub username: String,
