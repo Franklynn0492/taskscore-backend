@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use chrono::{DateTime, Utc};
 use rocket::{Request, http::Status, request::FromRequest, request::Outcome};
 use rocket_okapi::{request::{OpenApiFromRequest, RequestHeaderInput}, gen::OpenApiGenerator};
-use schemars::{JsonSchema, JsonSchema_repr};
+use schemars::{JsonSchema};
 
 use crate::repository::repository::Repository;
 

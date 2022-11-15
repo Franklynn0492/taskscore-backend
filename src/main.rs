@@ -8,8 +8,8 @@ use resource::session_resource::*;
 use resource::task_resource::*;
 use resource::user_resource::*;
 use resource::response::Response;
-use rocket_okapi::{openapi, openapi_get_routes, JsonSchema};
-use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
+use rocket_okapi::{openapi, openapi_get_routes};
+
 
 mod model;
 mod repository;
