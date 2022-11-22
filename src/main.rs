@@ -51,6 +51,7 @@ async fn main() {
         get_task, get_all_tasks])
 //    .mount(context_root, routes![])
     .register(context_root, catchers![not_found])
+    .attach(model::http::CORS)
     .launch()
     .await;
 }
