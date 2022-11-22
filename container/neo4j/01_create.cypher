@@ -8,10 +8,10 @@ CREATE OR REPLACE USER tsadmin
 //	SET HOME DATABASE taskscore
 ;
 	
-GRANT ROLE admin TO tsadmin;
+//GRANT ROLE admin TO tsadmin;
 
 //GRANT ALL ON HOME DATABASE TO admin;
-GRANT ALL ON taskscore TO admin;
+//GRANT ALL ON DATABASE taskscore TO tsadmin;
 
 :USE taskscore;
 
