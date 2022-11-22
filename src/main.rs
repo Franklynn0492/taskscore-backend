@@ -2,6 +2,7 @@ use repository::neo4j_repsitory::Neo4JRepository;
 use futures::executor::block_on;
 use rocket::response::status::NotFound;
 use rocket::serde::json::Json;
+use std::env;
 
 use resource::config_resource::*;
 use resource::score_resource::*;
@@ -36,6 +37,7 @@ fn not_found() -> NotFound<()> {
 
 #[rocket::main]
 async fn main() {
+    print!("Starting TaskScore application. Database address: {}\n", env::var("TS_DATABASE_ADDRESS").unwrap_or("N/A".to_owned()));
     let context_root = "/TaskScore/rest";
 
     let _ = rocket::build()

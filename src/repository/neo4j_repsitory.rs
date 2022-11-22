@@ -19,7 +19,7 @@ impl Neo4JRepository {
 
     pub async fn connect() -> Result<Neo4JRepository, ConnectionError> {
         dotenv().ok();
-        let db_addr = env::var("DATABASE_ADDRESS").or(Err("Database address not configured".to_owned()))?;
+        let db_addr = env::var("TS_DATABASE_ADDRESS").or(Err("Database address not configured".to_owned()))?;
 
         let stream = TcpStream::connect(db_addr).await.or(Err("unable to create TCP connection to database".to_owned()))?;
         let stream = BufStream::new(stream).compat();
@@ -35,8 +35,8 @@ impl Neo4JRepository {
             Metadata::from_iter(vec![
                 ("user_agent", "my-client-name/1.0"),
                 ("scheme", "basic"),
-                ("principal", &env::var("DATABASE_PRINCIPAL").unwrap()),
-                ("credentials", &env::var("DATABASE_PASSWORD").unwrap()),
+                ("principal", &env::var("TS_DATABASE_PRINCIPAL").unwrap()),
+                ("credentials", &env::var("TS_DATABASE_PASSWORD").unwrap()),
             ])).await.or(Err("Error sending authentication info to database".to_owned()))?;
 
         Success::try_from(response).or(Err("DB responded with error on login".to_owned()))?;
