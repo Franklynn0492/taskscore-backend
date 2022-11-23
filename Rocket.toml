@@ -1,5 +1,6 @@
 [global]
 address = "0.0.0.0"
+port = 8080
 
 [development]
 address = "0.0.0.0"
