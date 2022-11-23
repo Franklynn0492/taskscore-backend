@@ -6,9 +6,9 @@ ENV TS_DATABASE_PRINCIPAL=tsadmin
 ENV TS_DATABASE_PASSWORD=G3n3ricPwd
 ENV RUST_BACKTRACE=1
 ENV ROCKET_ADDRESS=0.0.0.0
+ENV ROCKET_PORT=8080
 
 COPY TaskScore /usr/bin
-EXPOSE 8000
 
 #CMD ["tail", "-f", "/dev/null"]
 CMD ["/usr/bin/TaskScore"]

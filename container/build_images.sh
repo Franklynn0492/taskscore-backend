@@ -5,3 +5,4 @@ cp -f ../target/${target}/TaskScore app/
 
 docker build --tag taskscore-neo4j ./neo4j
 docker build --tag taskscore-app ./app
+docker build --tag taskscore-nginx ./nginx
