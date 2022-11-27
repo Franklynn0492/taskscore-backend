@@ -1,9 +1,9 @@
 FROM neo4j
 
-ENV PWD=G3n3ricPwdd
+ENV PWD=D3f4ultPwd
 
-COPY 01_create.cypher /var/lib/neo4j/db_init/
-COPY 02_data.cypher /var/lib/neo4j/db_init/
+COPY 01_create.cypher /var/lib/neo4j/import/
+COPY 02_data.cypher /var/lib/neo4j/import/
 COPY apoc.conf /var/lib/neo4j/conf/
 
 VOLUME $HOME/neo4j/data:/data
