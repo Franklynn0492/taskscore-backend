@@ -8,11 +8,11 @@ StartLimitIntervalSec=0
 Type=simple
 TimeoutStartSec=1200
 
-WorkingDirectory=/opt/apps/taskscore/container
+WorkingDirectory=/opt/apps/taskscore-backend/container
 Restart=always
 RestartSec=5
 User=franklynn
-ExecStart=bash /opt/apps/taskscore/container/up_remote.sh
+ExecStart=bash /opt/apps/taskscore/container-backend/up_remote.sh
 ExecStop=docker compose down -v
 
 [Install]
