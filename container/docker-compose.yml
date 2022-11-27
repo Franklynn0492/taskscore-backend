@@ -12,7 +12,7 @@ services:
       - $HOME/neo4j/data:/data
     healthcheck:
         test: netstat -ltn | grep -c 7687
-        interval: 30s
+        interval: 8s
         timeout: 10s
         retries: 5
 
@@ -27,8 +27,8 @@ services:
     container_name: "taskscore-swagger"
     image: "swaggerapi/swagger-ui"
     environment:
-      - BASE_URL=/TaskScore/swagger
-      - SWAGGER_JSON_URL=http://${PROXY_HOST}:${PROXY_HTTP_PORT}/TaskScore/rest/openapi.json
+      - BASE_URL=/swagger
+      - SWAGGER_JSON_URL=${SWAGGER_PROTOCOL}://${PROXY_HOST}:${SWAGGER_PORT}/rest/openapi.json
     depends_on:
       - app
 

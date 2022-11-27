@@ -6,12 +6,12 @@ server {
     listen 8080;
     listen [::]:8080;
 
-    location /TaskScore/rest {
-        proxy_pass http://taskscore-app:8080/TaskScore/rest;
+    location /rest {
+        proxy_pass http://taskscore-app:8080/rest;
     }
 
-    location /TaskScore/swagger {
-        proxy_pass http://taskscore-swagger:8080/TaskScore/swagger;
+    location /swagger {
+        proxy_pass http://taskscore-swagger:8080/swagger;
     }
 }
 

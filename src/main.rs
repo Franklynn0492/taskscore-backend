@@ -38,7 +38,7 @@ fn not_found() -> NotFound<()> {
 #[rocket::main]
 async fn main() {
     print!("Starting TaskScore application. Database address: {}\n", env::var("TS_DATABASE_ADDRESS").unwrap_or("N/A".to_owned()));
-    let context_root = "/TaskScore/rest";
+    let context_root = "/rest";
 
     let _ = rocket::build()
 
