@@ -1,3 +1,5 @@
 /target
 Cargo.lock
 container/app/TaskScore
+container/.env
+container/nginx/nginx.conf
