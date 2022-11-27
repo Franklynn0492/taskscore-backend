@@ -1,0 +1,19 @@
+[Unit]
+Description=TaskScore service with docker compose
+Requires=docker.service
+After=docker.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+TimeoutStartSec=1200
+
+WorkingDirectory=/opt/apps/taskscore/container
+Restart=always
+RestartSec=5
+User=franklynn
+ExecStart=bash /opt/apps/taskscore/container/up_remote.sh
+ExecStop=docker compose down -v
+
+[Install]
+WantedBy=multi-user.target
