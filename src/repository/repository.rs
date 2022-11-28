@@ -17,7 +17,7 @@ pub trait Repository {
     async fn add_team<'a>(&'a self, team: Team) -> Option<u32>;
     async fn add_user_to_team<'a>(&'a self, team_name: &String, user_id: u32, manager: User) -> Result<(), String>;
     async fn add_user<'a>(&'a self, session: &Session, user: User) -> MessageResponder<u32>;
-    async fn login<'a>(&'a self, login_request: LoginRequest<'a>) -> Result<Session, String>;
+    async fn login<'a>(&'a self, login_request: LoginRequest) -> Result<Session, String>;
     async fn logout(&self, session_id: &String) -> Result<(), String>;
 }
 

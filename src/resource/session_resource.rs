@@ -10,7 +10,7 @@ use crate::repository::repository::Repository;
 
 #[openapi]
 #[post("/session/login")]
-pub async fn login<'a>(login_request: LoginRequest<'_>, repository: &State<Neo4JRepository>, jar: &CookieJar<'_>) -> Result<Json<Session>, NotFound<String>> {
+pub async fn login<'a>(login_request: LoginRequest, repository: &State<Neo4JRepository>, jar: &CookieJar<'_>) -> Result<Json<Session>, NotFound<String>> {
     let session_result = repository.login(login_request).await;
     match session_result {
         Ok(session) => {

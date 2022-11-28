@@ -5,6 +5,7 @@ use okapi::openapi3::{Parameter, Object, ParameterValue};
 use rocket::{Request, http::Status, request::FromRequest, request::Outcome};
 use rocket_okapi::{request::{OpenApiFromRequest, RequestHeaderInput}, gen::OpenApiGenerator};
 use schemars::{JsonSchema};
+use base64;
 
 use crate::repository::legacy_repository::LegacyRepository;
 use crate::repository::neo4j_repsitory::Neo4JRepository;
@@ -83,31 +84,55 @@ impl <'a> FromRequest<'a> for Session {
     }
 }
 
-#[derive(serde::Serialize, Clone)]
-pub struct LoginRequest<'b> {
-    pub username: &'b str,
-    pub password: Option<&'b str>,
+#[derive(serde::Serialize, Clone, OpenApiFromRequest)]
+pub struct LoginRequest {
+    pub username: String,
+    pub password: Option<String>,
 }
 
 #[async_trait]
-impl <'a> FromRequest<'a> for LoginRequest<'a> {
+impl<'a> FromRequest<'a> for LoginRequest {
     type Error = String;
 
     async fn from_request(request: &'a Request<'_>) -> Outcome<Self, Self::Error> {
-        let username_opt = request.headers().get_one("username");
-        let password_opt = request.headers().get_one("password");
-        match username_opt {
-            Some(username) => {
-                let login_request = LoginRequest {username: username, password: password_opt};
+        let authorization_header_opt = request.headers().get_one("Authorization");
+        match authorization_header_opt {
+            Some(authorization_header) => {
+                if !authorization_header.starts_with("Basic ") {
+                    return Outcome::Failure((Status::BadRequest, "Authentcation header does not indicate Basic Authentication".to_owned()));
+                }
+                let login_data_encoded = authorization_header.split_at(5).1;
+                if login_data_encoded.len() == 0 {
+                    return Outcome::Failure((Status::BadRequest, "Empty basic authentication header provided".to_owned()));
+                }
+
+                let decoded_res = base64::decode_config(login_data_encoded, base64::URL_SAFE);
+                if decoded_res.is_err() {
+                    return Outcome::Failure((Status::BadRequest, "Unable to decode basic authentication header".to_owned()));
+                }
+
+                let decoded_str_res = String::from_utf8(decoded_res.unwrap());
+                if decoded_str_res.is_err() {
+                    return Outcome::Failure((Status::BadRequest, "Unable to decode basic authentication header to utf8".to_owned()));
+                }
+                let decoded_str = decoded_str_res.unwrap();
+                let split = decoded_str.split_once(":");
+                let (username, password) = match (split) {
+                    Some((u, p)) =>  (u.to_owned(), Some(p.to_owned())),
+                    None => (decoded_str, None)
+                };
+
+                let login_request = LoginRequest {username, password};
 
                 Outcome::Success(login_request)
             },
-            None => Outcome::Failure((Status::BadRequest, "Username is required".to_owned()))
+            None => Outcome::Failure((Status::Unauthorized, "No basic authentication header provided".to_owned()))
         }
     }
 }
  
 // I could not find a way to derive this because of the lifetime parameter
+/*
 impl<'a> OpenApiFromRequest<'a> for LoginRequest<'a> {
     fn from_request_input(
         gen: &mut OpenApiGenerator,
@@ -133,4 +158,4 @@ impl<'a> OpenApiFromRequest<'a> for LoginRequest<'a> {
             extensions: Object::default(),
         }))
     }
-}
+}*/

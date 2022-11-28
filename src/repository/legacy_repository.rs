@@ -111,12 +111,12 @@ impl Repository for LegacyRepository {
         }
     }
 
-    async fn login<'a>(&'a self, login_request: LoginRequest<'a>) -> Result<Session, String> {
+    async fn login<'a>(&'a self, login_request: LoginRequest) -> Result<Session, String> {
         let username = login_request.username.to_owned();
         let user_opt = self.find_user_by_username(&username).await;
         let user = user_opt.ok_or("User does not exist")?;
 
-        if user.lock().unwrap().verify_password(login_request.password) {
+        if user.lock().unwrap().verify_password(&login_request.password) {
             let session = Session::new(Arc::clone(&user));
 
             let mut sessions = self.sessions.lock().unwrap();
@@ -250,8 +250,8 @@ mod tests {
 
     lazy_static! {
         static ref REPOSITORY: LegacyRepository = block_on(LegacyRepository::init_repository());
-        static ref ADMIN_SESSION: Session = block_on(REPOSITORY.login(LoginRequest{username: "roterkohl", password: Some("Flori1234")})).unwrap();
-        static ref USER_SESSION: Session = block_on(REPOSITORY.login(LoginRequest{username: "dliwespf", password: Some("Franki1234")})).unwrap();
+        static ref ADMIN_SESSION: Session = block_on(REPOSITORY.login(LoginRequest{username: "roterkohl".to_owned(), password: Some("Flori1234".to_owned())})).unwrap();
+        static ref USER_SESSION: Session = block_on(REPOSITORY.login(LoginRequest{username: "dliwespf".to_owned(), password: Some("Franki1234".to_owned())})).unwrap();
     }
     
     #[test]
@@ -390,7 +390,7 @@ mod tests {
 
     #[test]
     fn test_login_ok() {
-        let login_request = LoginRequest { username: "roterkohl", password: Some("Flori1234") };
+        let login_request = LoginRequest { username: "roterkohl".to_owned(), password: Some("Flori1234".to_owned()) };
         let result = block_on(REPOSITORY.login(login_request));
         assert!(result.is_ok());
         assert_eq!(30, result.unwrap().id.len());
@@ -398,7 +398,7 @@ mod tests {
 
     #[test]
     fn test_login_missing_user() {
-        let login_request = LoginRequest { username: "blauerkohl", password: Some("Flori1234") };
+        let login_request = LoginRequest { username: "blauerkohl".to_owned(), password: Some("Flori1234".to_owned()) };
         let result = block_on(REPOSITORY.login(login_request));
         assert!(result.is_err());
         let err = result.err();
@@ -407,7 +407,7 @@ mod tests {
 
     #[test]
     fn test_login_wrong_password() {
-        let login_request = LoginRequest { username: "roterkohl", password: Some("Flori5678") };
+        let login_request = LoginRequest { username: "roterkohl".to_owned(), password: Some("Flori5678".to_owned()) };
         let result = block_on(REPOSITORY.login(login_request));
         assert!(result.is_err());
         let err = result.err();

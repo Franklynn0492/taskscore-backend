@@ -43,7 +43,7 @@ impl User {
         self.pwd_hash_components = Some(bcrypt::hash(password, DEFAULT_COST).unwrap());
     }
 
-    pub fn verify_password(&self, password_to_verify: Option<&str>) -> bool {
+    pub fn verify_password(&self, password_to_verify: &Option<String>) -> bool {
         match &self.pwd_hash_components {
             Some(hash) => match password_to_verify {
                 Some(pwd_to_verify) => bcrypt::verify(pwd_to_verify, hash.as_str()).unwrap(),
