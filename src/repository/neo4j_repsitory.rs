@@ -180,7 +180,7 @@ impl Repository for Neo4JRepository {
         result
     }
 
-    async fn login<'a>(&'a self, login_request: crate::model::session::LoginRequest<'a>) -> Result<crate::model::Session, String> {
+    async fn login<'a>(&'a self, login_request: crate::model::session::LoginRequest) -> Result<crate::model::Session, String> {
         self.legacy_repo.login(login_request).await
     }
 
