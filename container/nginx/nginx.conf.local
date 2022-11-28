@@ -11,7 +11,7 @@ server {
     }
 
     location /swagger {
-        proxy_pass http://taskscore-swagger:8000/swagger;
+        proxy_pass http://taskscore-swagger:8080/swagger;
     }
 }
 

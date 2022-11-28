@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, Utc};
-use okapi::openapi3::{Parameter, Object, ParameterValue};
+use okapi::openapi3::{Parameter, Object, ParameterValue, SecurityScheme, SecuritySchemeData, SecurityRequirement};
 use rocket::{Request, http::Status, request::FromRequest, request::Outcome};
 use rocket_okapi::{request::{OpenApiFromRequest, RequestHeaderInput}, gen::OpenApiGenerator};
 use schemars::{JsonSchema};
@@ -84,7 +84,7 @@ impl <'a> FromRequest<'a> for Session {
     }
 }
 
-#[derive(serde::Serialize, Clone, OpenApiFromRequest)]
+#[derive(serde::Serialize, Clone)]
 pub struct LoginRequest {
     pub username: String,
     pub password: Option<String>,
@@ -130,3 +130,66 @@ impl<'a> FromRequest<'a> for LoginRequest {
         }
     }
 }
+ 
+
+impl<'a> OpenApiFromRequest<'a> for LoginRequest {
+    fn from_request_input(
+        _gen: &mut OpenApiGenerator,
+        _name: String,
+        _required: bool,
+    ) -> rocket_okapi::Result<RequestHeaderInput> {
+        // Setup global requirement for Security scheme
+        let security_scheme = SecurityScheme {
+            description: Some(
+                "Requires an HTTP Basic auth header. Try User: 'roterkohl'; Pwd: 'Flori1234'".to_owned(),
+            ),
+            // Setup data requirements.
+            // In this case the header `Authorization: mytoken` needs to be set.
+            data: SecuritySchemeData::Http {
+                scheme: "basic".to_owned(), // `basic`, `digest`, ...
+                // Just gives use a hint to the format used
+                bearer_format: Some("cm90ZXJrb2hsOkZsb3JpMTIzNA==".to_owned()),
+            },
+            extensions: Object::default(),
+        };
+        // Add the requirement for this route/endpoint
+        // This can change between routes.
+        let mut security_req = SecurityRequirement::new();
+        // Each security requirement needs to be met before access is allowed.
+        security_req.insert("HttpAuth".to_owned(), Vec::new());
+        // These vvvvvvv-----^^^^^^^^ values need to match exactly!
+        Ok(RequestHeaderInput::Security(
+            "HttpAuth".to_owned(),
+            security_scheme,
+            security_req,
+        ))
+    }
+}
+
+/*
+impl<'a> OpenApiFromRequest<'a> for LoginRequest {
+    fn from_request_input(
+        gen: &mut OpenApiGenerator,
+        _name: String,
+        required: bool,
+    ) -> rocket_okapi::Result<RequestHeaderInput> {
+        let schema = gen.json_schema::<String>();
+        Ok(RequestHeaderInput::Parameter(Parameter {
+            name: "username".to_owned(),
+            location: "header".to_owned(),
+            description: Some("The username used for login".to_owned()),
+            required,
+            deprecated: false,
+            allow_empty_value: false,
+            value: ParameterValue::Schema {
+                style: None,
+                explode: None,
+                allow_reserved: false,
+                schema,
+                example: Some(serde_json::Value::String("roterkohl".to_owned())),
+                examples: None,
+            },
+            extensions: Object::default(),
+        }))
+    }
+}*/
