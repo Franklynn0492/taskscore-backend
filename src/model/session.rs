@@ -101,7 +101,7 @@ impl<'a> FromRequest<'a> for LoginRequest {
                 if !authorization_header.starts_with("Basic ") {
                     return Outcome::Failure((Status::BadRequest, "Authentcation header does not indicate Basic Authentication".to_owned()));
                 }
-                let login_data_encoded = authorization_header.split_at(5).1;
+                let login_data_encoded = authorization_header.split_at(5).1.trim();
                 if login_data_encoded.len() == 0 {
                     return Outcome::Failure((Status::BadRequest, "Empty basic authentication header provided".to_owned()));
                 }
@@ -130,32 +130,3 @@ impl<'a> FromRequest<'a> for LoginRequest {
         }
     }
 }
- 
-// I could not find a way to derive this because of the lifetime parameter
-/*
-impl<'a> OpenApiFromRequest<'a> for LoginRequest<'a> {
-    fn from_request_input(
-        gen: &mut OpenApiGenerator,
-        _name: String,
-        required: bool,
-    ) -> rocket_okapi::Result<RequestHeaderInput> {
-        let schema = gen.json_schema::<String>();
-        Ok(RequestHeaderInput::Parameter(Parameter {
-            name: "username".to_owned(),
-            location: "header".to_owned(),
-            description: Some("The username used for login".to_owned()),
-            required,
-            deprecated: false,
-            allow_empty_value: false,
-            value: ParameterValue::Schema {
-                style: None,
-                explode: None,
-                allow_reserved: false,
-                schema,
-                example: Some(serde_json::Value::String("roterkohl".to_owned())),
-                examples: None,
-            },
-            extensions: Object::default(),
-        }))
-    }
-}*/
