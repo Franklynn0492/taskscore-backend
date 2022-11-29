@@ -164,31 +164,3 @@ impl<'a> OpenApiFromRequest<'a> for LoginRequest {
         ))
     }
 }
-
-/*
-impl<'a> OpenApiFromRequest<'a> for LoginRequest {
-    fn from_request_input(
-        gen: &mut OpenApiGenerator,
-        _name: String,
-        required: bool,
-    ) -> rocket_okapi::Result<RequestHeaderInput> {
-        let schema = gen.json_schema::<String>();
-        Ok(RequestHeaderInput::Parameter(Parameter {
-            name: "username".to_owned(),
-            location: "header".to_owned(),
-            description: Some("The username used for login".to_owned()),
-            required,
-            deprecated: false,
-            allow_empty_value: false,
-            value: ParameterValue::Schema {
-                style: None,
-                explode: None,
-                allow_reserved: false,
-                schema,
-                example: Some(serde_json::Value::String("roterkohl".to_owned())),
-                examples: None,
-            },
-            extensions: Object::default(),
-        }))
-    }
-}*/

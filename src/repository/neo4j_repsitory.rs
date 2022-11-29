@@ -5,7 +5,7 @@ use bolt_client::{Client, bolt_proto::{version::{V4_3, V4_2}, Message, message::
 use dotenv::dotenv;
 use rocket::{tokio::{net::TcpStream, io::BufStream}, futures::lock::Mutex, http::Status};
 use tokio_util::compat::*;
-use crate::model::{User, MessageResponder};
+use crate::{model::{User}, resource::http::responder::MessageResponder};
 
 use super::{legacy_repository::{LegacyRepository}, repository::Repository};
 
@@ -142,7 +142,7 @@ impl Repository for Neo4JRepository {
         self.legacy_repo.add_user_to_team(team_name, user_id, manager).await
     }
 
-    async fn add_user<'a>(&'a self, _session: &crate::model::Session, user: crate::model::User) -> crate::model::MessageResponder<u32> {
+    async fn add_user<'a>(&'a self, _session: &crate::model::Session, user: crate::model::User) -> MessageResponder<u32> {
         // Todo: Check if admin session
         // It is needed tochange the Mutex within it to the rocket version - and this is toom much work for me right now :)
 

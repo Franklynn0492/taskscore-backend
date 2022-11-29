@@ -174,7 +174,7 @@ impl <'a> FromRequest<'a> for Team {
     type Error = String;
 
     async fn from_request(request: &'a Request<'_>) -> Outcome<Self, Self::Error> {
-        let teamname_opt = request.headers().get_one("teamname");//.ok_or("Team name is required")?;
+        let teamname_opt = request.headers().get_one("teamname");
         let user_id_opt = request.headers().get_one("userid");
         let state = request.rocket().state::<LegacyRepository>().unwrap();
 

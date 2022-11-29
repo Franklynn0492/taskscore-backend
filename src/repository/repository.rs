@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use crate::model::{User, Task, Session, MessageResponder, session::LoginRequest, user::Team};
+use crate::{model::{User, Task, Session, session::LoginRequest, user::Team}, resource::http::responder::MessageResponder};
 
 #[async_trait]
 pub trait Repository {
