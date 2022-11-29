@@ -3,7 +3,7 @@ use serde::{Serialize};
 
 
 use okapi::{openapi3::Responses, Map};
-use rocket::{Request, Response, http::{Header, Status, ContentType}, response::{Responder}, fairing::{Fairing, Info, Kind}};
+use rocket::{Request, Response, http::{Header, Status, ContentType}, response::{Responder}};
 use rocket_okapi::{response::{OpenApiResponderInner}, gen::OpenApiGenerator, OpenApiError};
 
 pub struct MessageResponder<A> where A: ToString {

@@ -1,13 +1,12 @@
 use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, Utc};
-use okapi::openapi3::{Parameter, Object, ParameterValue, SecurityScheme, SecuritySchemeData, SecurityRequirement};
+use okapi::openapi3::{Object, SecurityScheme, SecuritySchemeData, SecurityRequirement};
 use rocket::{Request, http::Status, request::FromRequest, request::Outcome};
 use rocket_okapi::{request::{OpenApiFromRequest, RequestHeaderInput}, gen::OpenApiGenerator};
 use schemars::{JsonSchema};
 use base64;
 
-use crate::repository::legacy_repository::LegacyRepository;
 use crate::repository::neo4j_repsitory::Neo4JRepository;
 use crate::repository::repository::Repository;
 
@@ -117,7 +116,7 @@ impl<'a> FromRequest<'a> for LoginRequest {
                 }
                 let decoded_str = decoded_str_res.unwrap();
                 let split = decoded_str.split_once(":");
-                let (username, password) = match (split) {
+                let (username, password) = match split {
                     Some((u, p)) =>  (u.to_owned(), Some(p.to_owned())),
                     None => (decoded_str, None)
                 };
