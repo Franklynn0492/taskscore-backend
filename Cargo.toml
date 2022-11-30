@@ -36,3 +36,5 @@ okapi = { git = "https://github.com/GREsau/okapi", branch = "master"}
 
 [dev-dependencies]
 lazy_static = "1.4.0"   # Lazy global value initialization
+mockall = "0.11.3"      # Mocking in unit tests
+
