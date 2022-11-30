@@ -1,6 +1,11 @@
+Progress:
+- Each task gets field indicating an amount of times it is required to be fulfilled
+- There is a progress entity connecting user and tasks, containing the number of times a task has been fulfilled by a user
+- The score-webservice gets replaced by a "make progress"-Webservice. The response contains the progress object, and a flag indicating whether the task has been finished. If a task has been finished the preogress gets reset immediately.
+
 Tasks:
 - Make tasks limitable (n times per time unit)
-- can be fulfilled by siongle users or teams
+- can be fulfilled by single users or teams
 - points can decline if you win a task multiple times
 
 Trophies
