@@ -19,7 +19,7 @@ if [ $skipTests = false ] ; then
         echo "Tests succeeded, moving on..."
     else
         echo "Tests failed. Exiting."
-        exit 0
+        exit -1
     fi
 else
     echo "Skipping tests"
