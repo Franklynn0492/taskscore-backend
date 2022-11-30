@@ -16,6 +16,7 @@ use rocket_okapi::{openapi, openapi_get_routes};
 mod model;
 mod repository;
 mod resource;
+mod logic;
 
 #[macro_use] extern crate rocket;
 

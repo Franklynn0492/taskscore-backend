@@ -10,7 +10,7 @@ use schemars::JsonSchema;
 use crate::repository::legacy_repository::LegacyRepository;
 use crate::repository::repository::Repository;
 
-use super::{Task, Score};
+use super::{Task, Score, model::Entity};
 
 #[derive(serde::Serialize, Clone, JsonSchema, OpenApiFromRequest)]
 pub struct User {
@@ -51,6 +51,12 @@ impl User {
             }
             None => true
         }
+    }
+}
+
+impl Entity<u32> for User {
+    fn get_id(&self) -> &u32 {
+        &self.id
     }
 }
 
@@ -166,6 +172,12 @@ impl Team {
 
     pub fn contains(&self, user: &User) -> bool {
         self.member_ids.contains(&user.id)
+    }
+}
+
+impl Entity<u32> for Team {
+    fn get_id(&self) -> &u32 {
+        &self.id
     }
 }
 

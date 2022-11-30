@@ -10,7 +10,7 @@ use base64;
 use crate::repository::neo4j_repsitory::Neo4JRepository;
 use crate::repository::repository::Repository;
 
-use super::User;
+use super::{User, model::Entity};
 use rand::Rng;
 
 const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -50,6 +50,12 @@ impl Session {
 
     fn refresh(&mut self) {
         self.refreshed = Utc::now();
+    }
+}
+
+impl Entity<String> for Session {
+    fn get_id(&self) -> &String {
+        &self.id
     }
 }
 
