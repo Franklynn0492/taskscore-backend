@@ -3,3 +3,4 @@ Cargo.lock
 container/app/TaskScore
 container/.env
 container/nginx/nginx.conf
+container/app/task_score
