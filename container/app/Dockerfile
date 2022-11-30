@@ -8,7 +8,7 @@ ENV RUST_BACKTRACE=1
 ENV ROCKET_ADDRESS=0.0.0.0
 ENV ROCKET_PORT=8000
 
-COPY TaskScore /usr/bin
+COPY task_score /usr/bin
 
 #CMD ["tail", "-f", "/dev/null"]
-CMD ["/usr/bin/TaskScore"]
+CMD ["/usr/bin/task_score"]
