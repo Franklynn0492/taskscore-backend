@@ -9,6 +9,8 @@ do
     esac
 done
 
+git pull
+
 if [ $skipTests = false ] ; then
     echo "Launching tests..."
     (cd .. && exec cargo test --release)
@@ -23,7 +25,6 @@ else
     echo "Skipping tests"
 fi
 
-git pull
 (cd .. && exec cargo build --release)
 cp -f ../target/release/task_score app/
 cp -f .env.remote .env
