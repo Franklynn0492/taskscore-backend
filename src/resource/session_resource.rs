@@ -8,7 +8,7 @@ use crate::model::{Session};
 use crate::repository::neo4j_repsitory::Neo4JRepository;
 use crate::repository::repository::Repository;
 
-#[openapi]
+#[openapi(tag = "Session")]
 #[post("/session/login")]
 pub async fn login<'a>(login_request: LoginRequest, repository: &State<Neo4JRepository>, jar: &CookieJar<'_>) -> Result<Json<Session>, NotFound<String>> {
     let session_result = repository.login(login_request).await;
@@ -22,13 +22,13 @@ pub async fn login<'a>(login_request: LoginRequest, repository: &State<Neo4JRepo
     }
 }
 
-#[openapi]
+#[openapi(tag = "Session")]
 #[get("/session")]
 pub async fn get_current_session<'a>(session: Session) -> Json<Session> {
     Json(session)
 }
 
-#[openapi]
+#[openapi(tag = "Session")]
 #[delete("/session/logout")]
 pub async fn logout<'a>(session: Session, repository: &State<Neo4JRepository>) -> Result<Json<()>, NotFound<String>> {
     match repository.logout(&session.id).await {

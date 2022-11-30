@@ -1,13 +1,13 @@
 
-use std::{env, iter::FromIterator, convert::TryFrom, sync::{Arc}};
+use std::{env, iter::FromIterator, convert::TryFrom};
 
-use bolt_client::{Client, bolt_proto::{version::{V4_3, V4_2}, Message, message::{Success, Discard, Record}, value::Node}, Metadata, Params};
+use bolt_client::{Client, bolt_proto::{version::{V4_3, V4_2}, Message, message::{Success, Record}, value::Node}, Metadata, Params};
 use dotenv::dotenv;
 use rocket::{tokio::{net::TcpStream, io::BufStream}, futures::lock::Mutex, http::Status};
 use tokio_util::compat::*;
-use crate::model::{User, MessageResponder};
+use crate::{model::{User}, resource::http::responder::MessageResponder};
 
-use super::{legacy_repository::{LegacyRepository, self}, repository::Repository};
+use super::{legacy_repository::{LegacyRepository}, repository::Repository};
 
 pub struct Neo4JRepository {
     client: Mutex<Client<Compat<BufStream<TcpStream>>>>,
@@ -26,7 +26,7 @@ impl Neo4JRepository {
     
         // Create a new connection to the server and perform a handshake to establish a
         // protocol version. This example demonstrates usage of the v4.3 or v4.2 protocol.
-        let mut result = Client::new(stream, &[V4_3, V4_2, 0, 0]).await;
+        let result = Client::new(stream, &[V4_3, V4_2, 0, 0]).await;
         let mut client = result.unwrap();
          
         // Send a HELLO message with authentication details to the server to initialize
@@ -72,7 +72,7 @@ impl Neo4JRepository {
             return None;
         }
 
-        let (records, response) = pull_result.unwrap();
+        let (records, _response) = pull_result.unwrap();
 
         if records.len() == 0 {
             return None;
@@ -142,7 +142,7 @@ impl Repository for Neo4JRepository {
         self.legacy_repo.add_user_to_team(team_name, user_id, manager).await
     }
 
-    async fn add_user<'a>(&'a self, session: &crate::model::Session, user: crate::model::User) -> crate::model::MessageResponder<u32> {
+    async fn add_user<'a>(&'a self, _session: &crate::model::Session, user: crate::model::User) -> MessageResponder<u32> {
         // Todo: Check if admin session
         // It is needed tochange the Mutex within it to the rocket version - and this is toom much work for me right now :)
 

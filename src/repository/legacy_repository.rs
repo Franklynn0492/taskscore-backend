@@ -4,7 +4,7 @@ use std::{sync::{Mutex, Arc}};
 use rocket::{fairing::Result, http::Status};
 use futures::join;
 
-use crate::model::{MessageResponder, Session, Task, User, session::{LoginRequest}, user::{Team}};
+use crate::{model::{Session, Task, User, session::{LoginRequest}, user::{Team}}, resource::http::responder::MessageResponder};
 
 use super::repository::Repository;
 
@@ -98,7 +98,7 @@ impl Repository for LegacyRepository {
         team_locked.add_user(user.clone(), &manager)
     }
 
-    async fn add_user<'a>(&'a self, session: &Session, mut user: User) -> MessageResponder<u32> {
+    async fn add_user<'a>(&'a self, session: &Session, user: User) -> MessageResponder<u32> {
         let user_mutex_guard = session.user.lock().unwrap();
         if !user_mutex_guard.is_admin {
             MessageResponder::create_with_message(Status::Forbidden, "You are not an admin".to_owned())
@@ -239,7 +239,6 @@ impl LegacyRepository {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Mutex};
 
     use rocket::futures::executor::block_on;
 
@@ -369,7 +368,7 @@ mod tests {
     #[test]
     fn test_add_team() {
         let repository = block_on(LegacyRepository::init_repository());
-        let new_id = repository.add_team(Team::new(0, "newTeam".to_owned(), repository.get_user_unlocked(3).unwrap().clone()));
+        let _new_id = repository.add_team(Team::new(0, "newTeam".to_owned(), repository.get_user_unlocked(3).unwrap().clone()));
         //let team = repository.get_
     }
 

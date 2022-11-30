@@ -1,5 +1,5 @@
 
-use std::{sync::{Arc, Mutex}, hash::Hash, collections::{HashSet, HashMap}, convert::TryFrom};
+use std::{sync::{Arc, Mutex}, hash::Hash, collections::{HashSet, HashMap}};
 
 use bcrypt::{DEFAULT_COST};
 use bolt_client::bolt_proto::{value::Node, Value};
@@ -174,9 +174,9 @@ impl <'a> FromRequest<'a> for Team {
     type Error = String;
 
     async fn from_request(request: &'a Request<'_>) -> Outcome<Self, Self::Error> {
-        let teamname_opt = request.headers().get_one("teamname");//.ok_or("Team name is required")?;
+        let teamname_opt = request.headers().get_one("teamname");
         let user_id_opt = request.headers().get_one("userid");
-        let mut state = request.rocket().state::<LegacyRepository>().unwrap();
+        let state = request.rocket().state::<LegacyRepository>().unwrap();
 
         if teamname_opt.is_none() {
             return Outcome::Failure((Status::BadRequest, "Team name is required".to_owned()));
