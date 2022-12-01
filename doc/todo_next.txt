@@ -1,0 +1,5 @@
+- Complete separation of client and repository
+- Drop LegacyRepository
+- Split Neo4JRepository up per Entity
+- Introduce logic layer
+- Add unit tests

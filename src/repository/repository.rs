@@ -1,24 +1,34 @@
-use std::sync::{Arc, Mutex};
 
-use crate::{model::{User, Task, Session, session::LoginRequest, user::Team}, resource::http::responder::MessageResponder};
+#[cfg(test)] // Include the following only if you reun tests
+use mockall::automock;
 
+use crate::model::model::Entity;
+
+type WriteActionFailedErr = String;
+
+#[cfg_attr(test, automock)]
 #[async_trait]
-pub trait Repository {
-
-    async fn get_user<'a>(&'a self, id: u32) -> Option<User>;
-    async fn find_user_by_username<'a>(&'a self, username: &String) -> Option<Arc<Mutex<User>>>;
-    async fn find_user_by_username_const<'a>(&'a self, username: &String) -> Option<User>;
-    async fn get_all_users<'a>(&'a self) -> Vec<User>;
-    async fn get_task<'a>(&'a self, id: u32) -> Option<Task>;
-    async fn get_all_tasks<'a>(&'a self) -> Vec<Task>;
-    async fn get_session<'a>(&'a self, session_id: &String) -> Option<Session>;
-    async fn score<'a>(&'a self, user_id: u32, task_id: u32) -> Result<u16, String>;
-    async fn create_and_add_user<'a>(&'a self, username: String, display_name: String, password: String, is_admin: bool) -> Result<Arc<Mutex<User>>, String>;
-    async fn add_team<'a>(&'a self, team: Team) -> Option<u32>;
-    async fn add_user_to_team<'a>(&'a self, team_name: &String, user_id: u32, manager: User) -> Result<(), String>;
-    async fn add_user<'a>(&'a self, session: &Session, user: User) -> MessageResponder<u32>;
-    async fn login<'a>(&'a self, login_request: LoginRequest) -> Result<Session, String>;
-    async fn logout(&self, session_id: &String) -> Result<(), String>;
+pub trait ReadRepository<E: 'static, I: 'static> where E: Entity<I>, I: Send + Sync {
+    async fn find_by_id(&self, id: &I) -> Option<E>;
 }
 
-pub trait SizedRepository: Repository + Sized {}
+#[cfg_attr(test, automock)]
+#[async_trait]
+pub trait ReadAllRepository<E: 'static, I: 'static> where E: Entity<I>, I: Send + Sync {
+    async fn find_all(&self) -> Vec<E>;
+}
+
+#[cfg_attr(test, automock)]
+#[async_trait]
+pub trait WriteRepository<E: 'static, I: 'static> where E: Entity<I> + Send + Sync, I: Send + Sync {
+    async fn add(&self, new_entity: &E) -> Result<E, WriteActionFailedErr>;
+
+    async fn delete(&self, entity_with_update_values: &E) -> Result<E, WriteActionFailedErr>;
+}
+
+#[cfg_attr(test, automock)]
+#[async_trait]
+pub trait ModifyRepository<E: 'static, I: 'static> where E: Entity<I> + Send + Sync, I: Send + Sync {
+    async fn update(&self, entity_with_update_values: &E) -> Result<E, WriteActionFailedErr>;
+}
+
