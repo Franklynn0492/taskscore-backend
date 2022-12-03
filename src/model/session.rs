@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 
+use bolt_client::bolt_proto::value::Node;
 use chrono::{DateTime, Utc};
 use okapi::openapi3::{Object, SecurityScheme, SecuritySchemeData, SecurityRequirement};
 use rocket::{Request, http::Status, request::FromRequest, request::Outcome};
@@ -8,9 +9,8 @@ use schemars::{JsonSchema};
 use base64;
 
 use crate::repository::neo4j_repsitory::Neo4JRepository;
-use crate::repository::repository::Repository;
 
-use super::{User, model::Entity};
+use super::{User, Entity};
 use rand::Rng;
 
 const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -57,7 +57,19 @@ impl Entity<String> for Session {
     fn get_id(&self) -> &String {
         &self.id
     }
+
+    fn get_node_type_name() -> &'static str {
+        "Session"
+    }
 }
+
+impl From<Node> for Session {
+    fn from(value: Node) -> Self {
+        !unimplemented!();
+    }
+}
+
+
 
 #[async_trait]
 impl <'a> FromRequest<'a> for Session {

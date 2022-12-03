@@ -7,9 +7,9 @@ use rocket::{Request, request::Outcome, http::Status, request::{ FromRequest}};
 use rocket_okapi::OpenApiFromRequest;
 use schemars::JsonSchema;
 
-use crate::repository::legacy_repository::LegacyRepository;
+use crate::repository::neo4j_repsitory::Neo4JRepository;
 
-use super::{Task, Score, Entity};
+use super::{Task, Score, Entity, util::{self, get_string, get_bool, get_u16}};
 
 #[derive(serde::Serialize, Clone, JsonSchema, OpenApiFromRequest)]
 pub struct User {
@@ -50,12 +50,6 @@ impl User {
             }
             None => true
         }
-    }
-}
-
-impl Entity<u32> for User {
-    fn get_id(&self) -> &u32 {
-        &self.id
     }
 }
 
@@ -100,9 +94,13 @@ impl Hash for User {
     }
 }
 
-impl Entity<User, u32> for User {
+impl Entity<u32> for User {
     fn get_id(&self) -> &u32 {
         return &self.id;
+    }
+
+    fn get_node_type_name() -> &'static str {
+        "User"
     }
 }
 
@@ -111,33 +109,12 @@ impl From<Node> for User {
 
     fn from(value: Node) -> Self {
         let properties = value.properties();
-        let username = get_string(properties, "username", "N/A");
+        let username =  get_string(properties, "username", "N/A");
         let display_name = get_string(properties, "display_name", "N/A");
         let is_admin = get_bool(properties, "is_admin", false);
         let points = get_u16(properties, "points", 0);
 
         User{id: 0, username, display_name, is_admin, points, scores: vec![], pwd_hash_components: None}
-    }
-}
-
-fn get_string(properties: &HashMap<String, Value>, key: &str, alternative: &str) -> String  {
-    match properties.get(key) {
-        Some(Value::String(val)) => val.clone(),
-        _ => alternative.to_owned()
-    }
-}
-
-fn get_bool(properties: &HashMap<String, Value>, key: &str, alternative: bool) -> bool  {
-    match properties.get(key) {
-        Some(Value::Boolean(val)) => *val,
-        _ => alternative
-    }
-}
-
-fn get_u16(properties: &HashMap<String, Value>, key: &str, alternative: u16) -> u16  {
-    match properties.get(key) {
-        Some(Value::Integer(val)) => *val as u16,
-        _ => alternative
     }
 }
 
@@ -184,6 +161,16 @@ impl Entity<u32> for Team {
     fn get_id(&self) -> &u32 {
         &self.id
     }
+
+    fn get_node_type_name() -> &'static str {
+        "Team"
+    }
+}
+
+impl From<Node> for Team {
+    fn from(value: Node) -> Self {
+        !unimplemented!();
+    }
 }
 
 #[async_trait]
@@ -193,7 +180,7 @@ impl <'a> FromRequest<'a> for Team {
     async fn from_request(request: &'a Request<'_>) -> Outcome<Self, Self::Error> {
         let teamname_opt = request.headers().get_one("teamname");
         let user_id_opt = request.headers().get_one("userid");
-        let state = request.rocket().state::<LegacyRepository>().unwrap();
+        let state = request.rocket().state::<Neo4JRepository>().unwrap();  // Temporarily switched to Neo4JRepository
 
         if teamname_opt.is_none() {
             return Outcome::Failure((Status::BadRequest, "Team name is required".to_owned()));

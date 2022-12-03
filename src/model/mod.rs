@@ -7,7 +7,10 @@ pub use session::Session;
 pub mod session;
 pub mod user;
 pub mod task;
+mod util;
 
-pub trait Entity<E: 'static, I: 'static> where I: Send + Sync, E: Entity<E, I> + From<Node> {
+pub trait Entity<I: Send + Sync + 'static>: From<Node> + Send + Sync + 'static {
     fn get_id(&self) -> &I;
+
+    fn get_node_type_name() -> &'static str;
 }
