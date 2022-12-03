@@ -8,12 +8,16 @@ use tokio_util::compat::*;
 #[cfg(test)]
 use mockall::automock;
 
+use crate::model::Entity;
+
 type ConnectionError = String;
+type DbActionError = String;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait DbClient {
     async fn fetch(&self, statement: &str, params: Params) -> Option<Vec<Record>>;
+    async fn fetch_single(&self, statement: &str, params: Params) -> Option<Record>;
     async fn create(&self, statement: &str) -> Result<Record, String>;
     async fn update(&self, statement: &str) -> Result<bool, String>;
     async fn delete(&self, statement: &str) -> Result<bool, String>;
@@ -70,7 +74,7 @@ impl Neo4JClient {
 #[async_trait]
 impl DbClient for Neo4JClient {
 
-    async fn fetch(&self, statement: &str, params: Params) -> Option<Vec<Record>> {
+    async fn fetch<E> (&self, statement: &str, params: Params) -> Option<Vec<E>> where E: Entity<E, _> {
         let client = self.client.lock().await;
 
         let run_result = client.run(statement, Some(params), None).await;
@@ -98,19 +102,29 @@ impl DbClient for Neo4JClient {
 
         Neo4JClient::discard(client.unwrap()).await;
 
-        Some(records)
+        let entities = records.into_iter().map(|record| E::from(record)).collect();
+
+        Some(entities)
         
     }
 
-    async fn create(&self, statement: &str) -> Result<Record, String> {
+    async fn fetch_single<E> (&self, statement: &str, params: Params) -> Option<E> where E: Entity<E, _> {
+        let fetch_result = self.fetch(statement, params);
+        
+        let result = fetch_result.and_then(|entity_vec| entity_vec.pop());
+
+        result
+    }
+
+    async fn create(&self, statement: &str) -> Result<Record, DbActionError> {
         !unimplemented!();
     }
 
-    async fn update(&self, statement: &str) -> Result<bool, String> {
+    async fn update(&self, statement: &str) -> Result<bool, DbActionError> {
         !unimplemented!();
     }
 
-    async fn delete(&self, statement: &str) -> Result<bool, String> {
+    async fn delete(&self, statement: &str) -> Result<bool, DbActionError> {
         !unimplemented!();
     }
 }
