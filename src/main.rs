@@ -17,7 +17,7 @@ mod model;
 mod repository;
 mod resource;
 mod logic;
-mod client;
+mod util;
 
 #[macro_use] extern crate rocket;
 

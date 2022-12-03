@@ -3,3 +3,4 @@
 - Split Neo4JRepository up per Entity
 - Introduce logic layer
 - Add unit tests
+- Imprement From<Node> for entities

@@ -16,11 +16,11 @@ type DbActionError = String;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait DbClient {
-    async fn fetch(&self, statement: &str, params: Params) -> Option<Vec<Record>>;
-    async fn fetch_single(&self, statement: &str, params: Params) -> Option<Record>;
-    async fn create(&self, statement: &str) -> Result<Record, String>;
-    async fn update(&self, statement: &str) -> Result<bool, String>;
-    async fn delete(&self, statement: &str) -> Result<bool, String>;
+    async fn fetch<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Option<Vec<Record>>;
+    async fn fetch_single<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Option<Record>;
+    async fn create<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<E, DbActionError>;
+    async fn update<E: Entity<I>, I: Send + Sync + 'static> (&self, entity: E, statement: &str, params: Params) -> Result<bool, DbActionError>;
+    async fn delete<E: Entity<I>, I: Send + Sync + 'static> (&self, entity: E) -> Result<bool, DbActionError>;
 }
 
 pub struct Neo4JClient {
@@ -64,17 +64,12 @@ impl Neo4JClient {
             println!("{}", err_msg);
         }
     }
-
-    async fn match_in_db(client: &mut Client<Compat<BufStream<TcpStream>>>, statement: &str, params: Params) -> Option<Vec<Record>> {
-        // Todo: remove; replaced by fetch
-        !unimplemented!();
-    }
 }
 
 #[async_trait]
 impl DbClient for Neo4JClient {
 
-    async fn fetch<E> (&self, statement: &str, params: Params) -> Option<Vec<E>> where E: Entity<E, _> {
+    async fn fetch<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Option<Vec<E>> { // TODO: Check if this can be improved
         let client = self.client.lock().await;
 
         let run_result = client.run(statement, Some(params), None).await;
@@ -108,7 +103,7 @@ impl DbClient for Neo4JClient {
         
     }
 
-    async fn fetch_single<E> (&self, statement: &str, params: Params) -> Option<E> where E: Entity<E, _> {
+    async fn fetch_single<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Option<E> {
         let fetch_result = self.fetch(statement, params);
         
         let result = fetch_result.and_then(|entity_vec| entity_vec.pop());
@@ -116,15 +111,18 @@ impl DbClient for Neo4JClient {
         result
     }
 
-    async fn create(&self, statement: &str) -> Result<Record, DbActionError> {
+    async fn create<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<Record, DbActionError> {
+        let run_result = self.client.lock().unwrap().run(statement, Some(params), None);
+
+
         !unimplemented!();
     }
 
-    async fn update(&self, statement: &str) -> Result<bool, DbActionError> {
+    async fn update<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<bool, DbActionError> {
         !unimplemented!();
     }
 
-    async fn delete(&self, statement: &str) -> Result<bool, DbActionError> {
+    async fn delete<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str) -> Result<bool, DbActionError> {
         !unimplemented!();
     }
 }
