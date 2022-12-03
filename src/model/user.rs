@@ -8,9 +8,8 @@ use rocket_okapi::OpenApiFromRequest;
 use schemars::JsonSchema;
 
 use crate::repository::legacy_repository::LegacyRepository;
-use crate::repository::repository::Repository;
 
-use super::{Task, Score, model::Entity};
+use super::{Task, Score, Entity};
 
 #[derive(serde::Serialize, Clone, JsonSchema, OpenApiFromRequest)]
 pub struct User {
@@ -98,6 +97,12 @@ impl Hash for User {
         self.username.hash(state);
         self.display_name.hash(state);
         self.is_admin.hash(state);
+    }
+}
+
+impl Entity<User, u32> for User {
+    fn get_id(&self) -> &u32 {
+        return &self.id;
     }
 }
 
