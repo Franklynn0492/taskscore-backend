@@ -115,14 +115,14 @@ impl DbClient for Neo4JClient {
     }
 
     async fn fetch_single<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<Option<E>, DbActionError> {
-        let fetch_result = self.fetch(statement, params);
+        let fetch_result = self.fetch::<E, I>(statement, params).await;
         
-        let result = fetch_result.and_then(|entity_vec| entity_vec.pop());
+        let result = fetch_result.and_then(|entity_vec| Ok(entity_vec.pop()));
 
         result
     }
 
-    async fn create<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<Record, DbActionError> {
+    async fn create<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<E, DbActionError> {
         let run_result = self.client.lock().unwrap().run(statement, Some(params), None);
 
 
