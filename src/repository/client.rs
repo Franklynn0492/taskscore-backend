@@ -16,8 +16,8 @@ type DbActionError = String;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait DbClient {
-    async fn fetch<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Option<Vec<Record>>;
-    async fn fetch_single<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Option<Record>;
+    async fn fetch<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<Vec<E>, DbActionError>;
+    async fn fetch_single<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<Option<E>, DbActionError>;
     async fn create<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<E, DbActionError>;
     async fn update<E: Entity<I>, I: Send + Sync + 'static> (&self, entity: E, statement: &str, params: Params) -> Result<bool, DbActionError>;
     async fn delete<E: Entity<I>, I: Send + Sync + 'static> (&self, entity: E) -> Result<bool, DbActionError>;
@@ -69,41 +69,52 @@ impl Neo4JClient {
 #[async_trait]
 impl DbClient for Neo4JClient {
 
-    async fn fetch<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Option<Vec<E>> { // TODO: Check if this can be improved
+    async fn fetch<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<Vec<E>, DbActionError> { // TODO: Check if this can be improved
         let client = self.client.lock().await;
 
         let run_result = client.run(statement, Some(params), None).await;
 
         if run_result.is_err() {
-            let err_msg = run_result.unwrap_err();
+            let com_err = run_result.unwrap_err();
+            let err_msg = format!("{}", com_err);
             println!("{}", err_msg);
-            return None;
+            return Err(err_msg);
         }
 
         let metadata = Some(Metadata::from_iter(vec![("n", 1)]));
 
         let pull_result = client.pull(metadata).await;
         if pull_result.is_err() {
-            let err_msg = pull_result.unwrap_err();
+            let com_err = pull_result.unwrap_err();
+            let err_msg = format!("{}", com_err);
             println!("{}", err_msg);
-            return None;
+            return Err(err_msg);
         }
 
         let (records, _response) = pull_result.unwrap();
 
         if records.len() == 0 {
-            return None;
+            return Ok(vec![]);
         }
 
-        Neo4JClient::discard(client.unwrap()).await;
+        Neo4JClient::discard(&mut client).await;
 
-        let entities = records.into_iter().map(|record| E::from(record)).collect();
+        let entities = records.into_iter().map(|record| {
+            let node_result = Node::try_from(record.fields()[0].clone());
 
-        Some(entities)
+            if (node_result.is_ok()) {
+                Ok(E::from(node_result.unwrap()))
+            } else {
+                Err("Unable to create node from record".to_owned())
+            }
+            
+        }).collect::<Result<Vec<E>,_>>(); // Collecting into a result, in case a map fails. See: https://www.reddit.com/r/rust/comments/omsukl/falliable_iterators_why_no_try_map_for_iterator/
+
+        entities
         
     }
 
-    async fn fetch_single<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Option<E> {
+    async fn fetch_single<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<Option<E>, DbActionError> {
         let fetch_result = self.fetch(statement, params);
         
         let result = fetch_result.and_then(|entity_vec| entity_vec.pop());
