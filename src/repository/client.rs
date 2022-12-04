@@ -10,8 +10,9 @@ use mockall::automock;
 
 use crate::model::Entity;
 
-type ConnectionError = String;
-type DbActionError = String;
+use super::repository::DbActionError;
+
+pub type ConnectionError = String;
 
 #[cfg_attr(test, automock)]
 #[async_trait]

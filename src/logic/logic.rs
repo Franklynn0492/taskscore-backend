@@ -1,6 +1,5 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
-use futures::lock::Mutex;
 #[cfg(test)]
 use mockall::automock;
 
