@@ -64,6 +64,36 @@ impl Neo4JClient {
             println!("{}", err_msg);
         }
     }
+
+    async fn pull<E: Entity<I>, I: Send + Sync + 'static>(&self, client: &mut Client<Compat<BufStream<TcpStream>>>, metadata: Option<Metadata>) -> Result<Vec<E>, DbActionError> {
+
+        let pull_result = client.pull(metadata).await;
+        if pull_result.is_err() {
+            let com_err = pull_result.unwrap_err();
+            let err_msg = format!("{}", com_err);
+            println!("{}", err_msg);
+            return Err(err_msg);
+        }
+
+        let (records, _response) = pull_result.unwrap();
+
+        if records.len() == 0 {
+            return Ok(vec![]);
+        }
+
+        let entities = records.into_iter().map(|record| {
+            let node_result = Node::try_from(record.fields()[0].clone());
+
+            if (node_result.is_ok()) {
+                Ok(E::from(node_result.unwrap()))
+            } else {
+                Err("Unable to create node from record".to_owned())
+            }
+            
+        }).collect::<Result<Vec<E>,_>>(); // Collecting into a result, in case a map fails. See: https://www.reddit.com/r/rust/comments/omsukl/falliable_iterators_why_no_try_map_for_iterator/
+
+        entities
+    }
 }
 
 #[async_trait]
@@ -81,37 +111,9 @@ impl DbClient for Neo4JClient {
             return Err(err_msg);
         }
 
-        let metadata = Some(Metadata::from_iter(vec![("n", 1)]));
-
-        let pull_result = client.pull(metadata).await;
-        if pull_result.is_err() {
-            let com_err = pull_result.unwrap_err();
-            let err_msg = format!("{}", com_err);
-            println!("{}", err_msg);
-            return Err(err_msg);
-        }
-
-        let (records, _response) = pull_result.unwrap();
-
-        if records.len() == 0 {
-            return Ok(vec![]);
-        }
-
+        let entities = self.pull(&mut client, Some(Metadata::from_iter(vec![("n", 1)]))).await;
         Neo4JClient::discard(&mut client).await;
-
-        let entities = records.into_iter().map(|record| {
-            let node_result = Node::try_from(record.fields()[0].clone());
-
-            if (node_result.is_ok()) {
-                Ok(E::from(node_result.unwrap()))
-            } else {
-                Err("Unable to create node from record".to_owned())
-            }
-            
-        }).collect::<Result<Vec<E>,_>>(); // Collecting into a result, in case a map fails. See: https://www.reddit.com/r/rust/comments/omsukl/falliable_iterators_why_no_try_map_for_iterator/
-
         entities
-        
     }
 
     async fn fetch_single<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<Option<E>, DbActionError> {
@@ -123,17 +125,36 @@ impl DbClient for Neo4JClient {
     }
 
     async fn create<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<E, DbActionError> {
-        let run_result = self.client.lock().unwrap().run(statement, Some(params), None);
+        let client = self.client.lock().await;
 
+        let run_result = client.run(statement, Some(params), None).await;
+        
+        if run_result.is_err() {
+            let com_err = run_result.unwrap_err();
+            let err_msg = format!("{}", com_err);
+            println!("{}", err_msg);
+            return Err(err_msg);
+        }
 
+        let metadata = Some(Metadata::from_iter(vec![("n", 1)]));
+
+        
+
+        let pull_result = self.pull::<E, I>(&mut client, metadata).await;
+        
+        let result = pull_result.and_then(|entity_vec| entity_vec.pop().ok_or("Create did not return entity".to_owned()));
+
+        //Neo4JRepository::discard(&mut client).await;
+
+        result
+
+    }
+
+    async fn update<E: Entity<I>, I: Send + Sync + 'static> (&self, entity: E, statement: &str, params: Params) -> Result<bool, DbActionError> {
         !unimplemented!();
     }
 
-    async fn update<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<bool, DbActionError> {
-        !unimplemented!();
-    }
-
-    async fn delete<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str) -> Result<bool, DbActionError> {
+    async fn delete<E: Entity<I>, I: Send + Sync + 'static> (&self, entity: E) -> Result<bool, DbActionError> {
         !unimplemented!();
     }
 }
