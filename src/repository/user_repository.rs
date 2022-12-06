@@ -37,6 +37,8 @@ impl <'c> ModifyRepository<User, u32> for UserRepository<'c> {
         let statement = "MATCH (p:Person) WHERE id(p) = $id SET p.display_name = '$display_name', p.password = '$password', p.username = '$username' RETURN p";
         let params = Params::from_iter(vec![("id", entity_with_update_values.id.to_string()), ("display_name", entity_with_update_values.display_name),
             ("password", entity_with_update_values.pwd_hash_components.unwrap_or("".to_owned())), ("username", entity_with_update_values.username)]);
+        
+        return self.client.update::<User, u32>(statement, params).await;
     }
 }
 

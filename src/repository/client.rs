@@ -20,7 +20,7 @@ pub trait DbClient {
     async fn fetch<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<Vec<E>, DbActionError>;
     async fn fetch_single<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<Option<E>, DbActionError>;
     async fn create<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<E, DbActionError>;
-    async fn update<E: Entity<I>, I: Send + Sync + 'static> (&self, entity: E, statement: &str, params: Params) -> Result<E, DbActionError>;
+    async fn update<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<E, DbActionError>;
     async fn delete<E: Entity<I>, I: Send + Sync + 'static> (&self, entity: E) -> Result<bool, DbActionError>;
 }
 
@@ -151,7 +151,7 @@ impl DbClient for Neo4JClient {
 
     }
 
-    async fn update<E: Entity<I>, I: Send + Sync + 'static> (&self, entity: E, statement: &str, params: Params) -> Result<E, DbActionError> {
+    async fn update<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<E, DbActionError> {
         !unimplemented!();
     }
 
