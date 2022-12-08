@@ -20,6 +20,7 @@ pub trait DbClient {
     async fn fetch<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<Vec<E>, DbActionError>;
     async fn fetch_all<E: Entity<I>, I: Id> (&self) -> Result<Vec<E>, DbActionError>;
     async fn fetch_single<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<Option<E>, DbActionError>;
+    async fn fetch_by_id<E: Entity<I>, I: Id> (&self, id: &I) -> Result<Option<E>, DbActionError>;
     async fn create<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<E, DbActionError>;
     async fn update<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<E, DbActionError>;
     async fn delete<E: Entity<I>, I: Id> (&self, entity: &E) -> Result<(), DbActionError>;
@@ -135,6 +136,14 @@ impl Neo4JClient {
 
 #[async_trait]
 impl DbClient for Neo4JClient {
+
+    async fn fetch_by_id<E: Entity<I>, I: Id> (&self, id: &I) -> Result<Option<E>, DbActionError> {
+        let statement = format!("MATCH (e: {}) WHERE id(e) = $id RETURN e", E::get_node_type_name()).as_str();
+        let params = Params::from_iter(vec![("id", id.to_string())]);
+
+        self.fetch_single(statement, params).await
+    }
+
     async fn fetch_all<E: Entity<I>, I: Id> (&self) -> Result<Vec<E>, DbActionError> {
         let statement = format!("MATCH (e: {}) RETURN e", E::get_node_type_name()).as_str();
         let params = Params::from_iter::<Vec<(&str, &str)>>(vec![]);

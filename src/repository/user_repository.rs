@@ -26,10 +26,7 @@ impl <'c> UserRepository<'c> {
 #[async_trait]
 impl <'c> ReadRepository<User, u32> for UserRepository<'c> {
     async fn find_by_id(&self, id: &u32) -> Result<Option<crate::model::User>, DbActionError> {
-        let statement = "MATCH (p:Person) WHERE id(p) = $id RETURN p;";
-        let params = Params::from_iter(vec![("id", id.to_string())]);
-
-        let result = self.client.fetch_single::<User, u32>(statement, params).await;
+        let result = self.client.fetch_by_id::<User, u32>(&id).await;
 
         result
     }
