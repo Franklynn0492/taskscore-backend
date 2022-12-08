@@ -23,7 +23,7 @@ pub trait ReadAllRepository<E, I: Send + Sync + 'static> where E: Entity<I> {
 pub trait WriteRepository<E, I: Send + Sync + 'static> where E: Entity<I> {
     async fn add(&self, new_entity: &E) -> Result<E, DbActionError>;
 
-    async fn delete(&self, entity_with_update_values: &E) -> Result<E, DbActionError>;
+    async fn delete(&self, entity_with_update_values: &E) -> Result<(), DbActionError>;
 }
 
 #[cfg_attr(test, automock)]

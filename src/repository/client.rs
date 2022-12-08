@@ -8,7 +8,7 @@ use tokio_util::compat::*;
 #[cfg(test)]
 use mockall::automock;
 
-use crate::model::Entity;
+use crate::model::{Entity, Id};
 
 use super::repository::DbActionError;
 
@@ -17,11 +17,11 @@ pub type ConnectionError = String;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait DbClient {
-    async fn fetch<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<Vec<E>, DbActionError>;
-    async fn fetch_single<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<Option<E>, DbActionError>;
-    async fn create<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<E, DbActionError>;
-    async fn update<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<E, DbActionError>;
-    async fn delete<E: Entity<I>, I: Send + Sync + 'static> (&self, entity: E) -> Result<bool, DbActionError>;
+    async fn fetch<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<Vec<E>, DbActionError>;
+    async fn fetch_single<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<Option<E>, DbActionError>;
+    async fn create<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<E, DbActionError>;
+    async fn update<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<E, DbActionError>;
+    async fn delete<E: Entity<I>, I: Id> (&self, entity: &E) -> Result<(), DbActionError>;
 }
 
 pub struct Neo4JClient {
@@ -95,67 +95,93 @@ impl Neo4JClient {
 
         entities
     }
-}
 
-#[async_trait]
-impl DbClient for Neo4JClient {
+    async fn run(&self, statement: &str, params_opt: Option<Params>) -> Result<(), DbActionError> {
+        let mut client = self.client.lock().await;
 
-    async fn fetch<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<Vec<E>, DbActionError> { // TODO: Check if this can be improved
-        let client = self.client.lock().await;
-
-        let run_result = client.run(statement, Some(params), None).await;
-
+        let run_result = client.run(statement, params_opt, None).await;
+        
         if run_result.is_err() {
             let com_err = run_result.unwrap_err();
             let err_msg = format!("{}", com_err);
             println!("{}", err_msg);
-            return Err(err_msg);
+            Err(err_msg)
+        } else {
+            Ok(())
         }
+    }
+
+    async fn perform_action_returning_one_entity<E: Entity<I>, I: Send + Sync + 'static>(&self, action_name: &str, statement: &str, params_opt: Option<Params>) -> Result<E, DbActionError> {
+        let run_result = self.run(statement, params_opt).await;
+        
+        if run_result.is_err() {
+            return Err(run_result.unwrap_err());
+        }
+
+        let mut client = self.client.lock().await;
+        let metadata = Some(Metadata::from_iter(vec![("n", 1)]));
+
+        // this pull actually reads the new node we just created on the DB. It is not neccessary in order to complete the create
+        let pull_result = self.pull::<E, I>(&mut client, metadata).await;
+        
+        let result = pull_result.and_then(|mut entity_vec| entity_vec.pop().ok_or(format!("{} did not return entity", action_name)));
+
+        //Neo4JRepository::discard(&mut client).await;
+
+        result
+    }
+}
+
+#[async_trait]
+impl DbClient for Neo4JClient {
+    async fn fetch<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<Vec<E>, DbActionError> {
+        let run_result = self.run(statement, Some(params)).await;
+        
+        if run_result.is_err() {
+            return Err(run_result.unwrap_err());
+        }
+
+        let mut client = self.client.lock().await;
 
         let entities = self.pull(&mut client, Some(Metadata::from_iter(vec![("n", 1)]))).await;
         Neo4JClient::discard(&mut client).await;
         entities
     }
 
-    async fn fetch_single<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<Option<E>, DbActionError> {
+    async fn fetch_single<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<Option<E>, DbActionError> {
         let fetch_result = self.fetch::<E, I>(statement, params).await;
         
-        let result = fetch_result.and_then(|entity_vec| Ok(entity_vec.pop()));
+        let result = fetch_result.and_then(|mut entity_vec| Ok(entity_vec.pop()));
 
         result
     }
 
-    async fn create<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<E, DbActionError> {
-        let client = self.client.lock().await;
+    async fn create<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<E, DbActionError> {
+        
+        let result = self.perform_action_returning_one_entity("Create", statement, Some(params)).await;
 
-        let run_result = client.run(statement, Some(params), None).await;
+        result
+
+    }
+
+    async fn update<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<E, DbActionError> {
+        
+        let result = self.perform_action_returning_one_entity("Update", statement, Some(params)).await;
+
+        result
+    }
+
+    async fn delete<E: Entity<I>, I: Id> (&self, entity: &E) -> Result<(), DbActionError> {
+
+        let statement = format!("MATCH (p:{}) WHERE id(p) = $id DETACH DELETE p", E::get_node_type_name());
+        let params = Params::from_iter(vec![("id", entity.get_id().to_string())]);
+
+        let run_result = self.run(statement.as_str(), Some(params)).await;
         
         if run_result.is_err() {
-            let com_err = run_result.unwrap_err();
-            let err_msg = format!("{}", com_err);
-            println!("{}", err_msg);
-            return Err(err_msg);
+            return Err(run_result.unwrap_err());
         }
 
-        let metadata = Some(Metadata::from_iter(vec![("n", 1)]));
-
-        
-
-        let pull_result = self.pull::<E, I>(&mut client, metadata).await;
-        
-        let result = pull_result.and_then(|entity_vec| entity_vec.pop().ok_or("Create did not return entity".to_owned()));
-
-        //Neo4JRepository::discard(&mut client).await;
-
-        result
-
-    }
-
-    async fn update<E: Entity<I>, I: Send + Sync + 'static> (&self, statement: &str, params: Params) -> Result<E, DbActionError> {
-        !unimplemented!();
-    }
-
-    async fn delete<E: Entity<I>, I: Send + Sync + 'static> (&self, entity: E) -> Result<bool, DbActionError> {
-        !unimplemented!();
+        Ok(())
     }
 }

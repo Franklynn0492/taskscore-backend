@@ -2,7 +2,7 @@ use bolt_client::{Params};
 
 use crate::{model::User};
 
-use super::{client::{Neo4JClient, DbClient}, repository::{ReadRepository, DbActionError, ModifyRepository}};
+use super::{client::{Neo4JClient, DbClient}, repository::{ReadRepository, DbActionError, ModifyRepository, WriteRepository}};
 
 pub struct UserRepository<'c> {
     client: &'c Neo4JClient,
@@ -40,5 +40,22 @@ impl <'c> ModifyRepository<User, u32> for UserRepository<'c> {
         
         return self.client.update::<User, u32>(statement, params).await;
     }
+}
+
+#[async_trait]
+impl <'c> WriteRepository<User, u32> for UserRepository<'c> {
+    async fn add(&self, new_entity: &User) -> Result<User, DbActionError> {
+        let statement = "CREATE (p:Person {username: '$username', display_name: '$display_name', password: '$password', is_admin: &is_admin }) RETURN p";
+        let params = Params::from_iter(vec![("username", new_entity.username), ("display_name", new_entity.display_name),
+            ("password", new_entity.pwd_hash_components.unwrap_or("".to_owned())), ("is_admin", new_entity.is_admin.to_string())]);
+        
+        return self.client.create::<User, u32>(statement, params).await;
+    }
+
+    async fn delete(&self, entity_to_delete: &User) -> Result<(), DbActionError> {
+        
+        return self.client.delete::<User, u32>(entity_to_delete).await;
+    }
+
 }
 
