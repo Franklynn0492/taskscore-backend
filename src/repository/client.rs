@@ -18,6 +18,7 @@ pub type ConnectionError = String;
 #[async_trait]
 pub trait DbClient {
     async fn fetch<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<Vec<E>, DbActionError>;
+    async fn fetch_all<E: Entity<I>, I: Id> (&self) -> Result<Vec<E>, DbActionError>;
     async fn fetch_single<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<Option<E>, DbActionError>;
     async fn create<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<E, DbActionError>;
     async fn update<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<E, DbActionError>;
@@ -134,6 +135,13 @@ impl Neo4JClient {
 
 #[async_trait]
 impl DbClient for Neo4JClient {
+    async fn fetch_all<E: Entity<I>, I: Id> (&self) -> Result<Vec<E>, DbActionError> {
+        let statement = format!("MATCH (e: {}) RETURN e", E::get_node_type_name()).as_str();
+        let params = Params::from_iter::<Vec<(&str, &str)>>(vec![]);
+
+        self.fetch(statement, params).await
+    }
+
     async fn fetch<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<Vec<E>, DbActionError> {
         let run_result = self.run(statement, Some(params)).await;
         

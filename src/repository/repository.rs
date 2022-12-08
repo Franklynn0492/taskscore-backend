@@ -15,7 +15,7 @@ pub trait ReadRepository<E, I: Send + Sync + 'static> where E: Entity<I> {
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait ReadAllRepository<E, I: Send + Sync + 'static> where E: Entity<I> {
-    async fn find_all(&self) -> Result<Option<E>,Vec<E>>;
+    async fn find_all(&self) -> Result<Vec<E>, DbActionError>;
 }
 
 #[cfg_attr(test, automock)]
