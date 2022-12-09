@@ -1,15 +1,17 @@
+use std::{rc::Rc, sync::Arc};
+
 use bolt_client::{Params};
 
 use crate::{model::User};
 
 use super::{client::{Neo4JClient, DbClient}, repository::{ReadRepository, DbActionError, ModifyRepository, WriteRepository, ReadAllRepository}};
 
-pub struct UserRepository<'c> {
-    client: &'c Neo4JClient,
+pub struct UserRepository {
+    client: Arc<Neo4JClient>,
 }
 
-impl <'c> UserRepository<'c> {
-    pub fn new(client: &'c Neo4JClient) -> UserRepository<'c> {
+impl  UserRepository {
+    pub fn new(client:  Arc<Neo4JClient>) -> UserRepository {
         UserRepository { client }
     }
 
@@ -24,7 +26,7 @@ impl <'c> UserRepository<'c> {
 }
 
 #[async_trait]
-impl <'c> ReadRepository<User, u32> for UserRepository<'c> {
+impl  ReadRepository<User, u32> for UserRepository {
     async fn find_by_id(&self, id: &u32) -> Result<Option<crate::model::User>, DbActionError> {
         let result = self.client.fetch_by_id::<User, u32>(&id).await;
 
@@ -33,7 +35,7 @@ impl <'c> ReadRepository<User, u32> for UserRepository<'c> {
 }
 
 #[async_trait]
-impl <'c> ModifyRepository<User, u32> for UserRepository<'c> {
+impl  ModifyRepository<User, u32> for UserRepository {
     async fn update(&self, entity_with_update_values: &User) -> Result<User, DbActionError> {
         let statement = "MATCH (p:Person) WHERE id(p) = $id SET p.display_name = '$display_name', p.password = '$password', p.username = '$username' RETURN p";
         let params = Params::from_iter(vec![("id", entity_with_update_values.id.to_string()), ("display_name", entity_with_update_values.display_name),
@@ -46,7 +48,7 @@ impl <'c> ModifyRepository<User, u32> for UserRepository<'c> {
 }
 
 #[async_trait]
-impl <'c> WriteRepository<User, u32> for UserRepository<'c> {
+impl  WriteRepository<User, u32> for UserRepository {
     async fn add(&self, new_entity: &User) -> Result<User, DbActionError> {
         let statement = "CREATE (p:Person {username: '$username', display_name: '$display_name', password: '$password', is_admin: &is_admin }) RETURN p";
         let params = Params::from_iter(vec![("username", new_entity.username), ("display_name", new_entity.display_name),
@@ -65,7 +67,7 @@ impl <'c> WriteRepository<User, u32> for UserRepository<'c> {
 }
 
 #[async_trait]
-impl <'c> ReadAllRepository<User, u32> for UserRepository<'c> {
+impl  ReadAllRepository<User, u32> for UserRepository {
     async fn find_all(&self) -> Result<Vec<User>, DbActionError> {
         let result = self.client.fetch_all::<User, u32>().await;
 

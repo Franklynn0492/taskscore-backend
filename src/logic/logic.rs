@@ -1,9 +1,10 @@
-use std::sync::{Arc, Mutex};
+use std::{sync::{Arc, Mutex}, rc::Rc};
+use crate::repository::client::{Neo4JClient, DbClient};
 
 #[cfg(test)]
 use mockall::automock;
 
-use crate::{model::{User, Task, Session, session::LoginRequest, user::Team}, resource::http::responder::MessageResponder};
+use crate::{model::{User, Task, Session, session::LoginRequest, user::Team}, resource::http::responder::MessageResponder, repository::{user_repository::UserRepository, neo4j_repsitory::Neo4JRepository}};
 
 #[cfg_attr(test, automock)] // Apply the automock macro only if you are testing
 #[async_trait]
@@ -23,5 +24,23 @@ pub trait Logic {
     async fn add_user<'a>(&'a self, session: &Session, user: User) -> MessageResponder<u32>;
     async fn login<'a>(&'a self, login_request: LoginRequest) -> Result<Session, String>;
     async fn logout(&self, session_id: &String) -> Result<(), String>;
+}
+
+// This struct will become quite big (or at least its iplementation) Might have to break it up sooner or later.
+pub struct ApplicationLogic {
+    db_client: Arc<Neo4JClient>,
+    user_repo: UserRepository,
+}
+pub type ApplicationLogicError = String;
+
+impl ApplicationLogic {
+    pub async fn new() -> Result<ApplicationLogic, ApplicationLogicError> {
+        let db_client = Arc::new(Neo4JClient::connect().await?);
+
+        let user_repo = UserRepository::new(db_client.clone());
+
+        Ok(ApplicationLogic { db_client, user_repo })
+    }
+    
 }
 
