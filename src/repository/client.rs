@@ -17,12 +17,12 @@ pub type ConnectionError = String;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait DbClient {
-    async fn fetch<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<Vec<E>, DbActionError>;
+    async fn fetch<E: Entity<I>, I: Id> (&self, statement: String, params: Params) -> Result<Vec<E>, DbActionError>;
     async fn fetch_all<E: Entity<I>, I: Id> (&self) -> Result<Vec<E>, DbActionError>;
-    async fn fetch_single<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<Option<E>, DbActionError>;
+    async fn fetch_single<E: Entity<I>, I: Id> (&self, statement: String, params: Params) -> Result<Option<E>, DbActionError>;
     async fn fetch_by_id<E: Entity<I>, I: Id> (&self, id: &I) -> Result<Option<E>, DbActionError>;
-    async fn create<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<E, DbActionError>;
-    async fn update<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<E, DbActionError>;
+    async fn create<E: Entity<I>, I: Id> (&self, statement: String, params: Params) -> Result<E, DbActionError>;
+    async fn update<E: Entity<I>, I: Id> (&self, statement: String, params: Params) -> Result<E, DbActionError>;
     async fn delete<E: Entity<I>, I: Id> (&self, entity: &E) -> Result<(), DbActionError>;
 }
 
@@ -98,7 +98,7 @@ impl Neo4JClient {
         entities
     }
 
-    async fn run(&self, statement: &str, params_opt: Option<Params>) -> Result<(), DbActionError> {
+    async fn run(&self, statement: String, params_opt: Option<Params>) -> Result<(), DbActionError> {
         let mut client = self.client.lock().await;
 
         let run_result = client.run(statement, params_opt, None).await;
@@ -113,7 +113,7 @@ impl Neo4JClient {
         }
     }
 
-    async fn perform_action_returning_one_entity<E: Entity<I>, I: Send + Sync + 'static>(&self, action_name: &str, statement: &str, params_opt: Option<Params>) -> Result<E, DbActionError> {
+    async fn perform_action_returning_one_entity<E: Entity<I>, I: Send + Sync + 'static>(&self, action_name: &str, statement: String, params_opt: Option<Params>) -> Result<E, DbActionError> {
         let run_result = self.run(statement, params_opt).await;
         
         if run_result.is_err() {
@@ -138,20 +138,20 @@ impl Neo4JClient {
 impl DbClient for Neo4JClient {
 
     async fn fetch_by_id<E: Entity<I>, I: Id> (&self, id: &I) -> Result<Option<E>, DbActionError> {
-        let statement = format!("MATCH (e: {}) WHERE id(e) = $id RETURN e", E::get_node_type_name()).as_str();
+        let statement = format!("MATCH (e: {}) WHERE id(e) = $id RETURN e", E::get_node_type_name());
         let params = Params::from_iter(vec![("id", id.to_string())]);
 
         self.fetch_single(statement, params).await
     }
 
     async fn fetch_all<E: Entity<I>, I: Id> (&self) -> Result<Vec<E>, DbActionError> {
-        let statement = format!("MATCH (e: {}) RETURN e", E::get_node_type_name()).as_str();
+        let statement = format!("MATCH (e: {}) RETURN e", E::get_node_type_name());
         let params = Params::from_iter::<Vec<(&str, &str)>>(vec![]);
 
         self.fetch(statement, params).await
     }
 
-    async fn fetch<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<Vec<E>, DbActionError> {
+    async fn fetch<E: Entity<I>, I: Id> (&self, statement: String, params: Params) -> Result<Vec<E>, DbActionError> {
         let run_result = self.run(statement, Some(params)).await;
         
         if run_result.is_err() {
@@ -165,7 +165,7 @@ impl DbClient for Neo4JClient {
         entities
     }
 
-    async fn fetch_single<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<Option<E>, DbActionError> {
+    async fn fetch_single<E: Entity<I>, I: Id> (&self, statement: String, params: Params) -> Result<Option<E>, DbActionError> {
         let fetch_result = self.fetch::<E, I>(statement, params).await;
         
         let result = fetch_result.and_then(|mut entity_vec| Ok(entity_vec.pop()));
@@ -173,7 +173,7 @@ impl DbClient for Neo4JClient {
         result
     }
 
-    async fn create<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<E, DbActionError> {
+    async fn create<E: Entity<I>, I: Id> (&self, statement: String, params: Params) -> Result<E, DbActionError> {
         
         let result = self.perform_action_returning_one_entity("Create", statement, Some(params)).await;
 
@@ -181,7 +181,7 @@ impl DbClient for Neo4JClient {
 
     }
 
-    async fn update<E: Entity<I>, I: Id> (&self, statement: &str, params: Params) -> Result<E, DbActionError> {
+    async fn update<E: Entity<I>, I: Id> (&self, statement: String, params: Params) -> Result<E, DbActionError> {
         
         let result = self.perform_action_returning_one_entity("Update", statement, Some(params)).await;
 
@@ -193,7 +193,7 @@ impl DbClient for Neo4JClient {
         let statement = format!("MATCH (p:{}) WHERE id(p) = $id DETACH DELETE p", E::get_node_type_name());
         let params = Params::from_iter(vec![("id", entity.get_id().to_string())]);
 
-        let run_result = self.run(statement.as_str(), Some(params)).await;
+        let run_result = self.run(statement, Some(params)).await;
         
         if run_result.is_err() {
             return Err(run_result.unwrap_err());

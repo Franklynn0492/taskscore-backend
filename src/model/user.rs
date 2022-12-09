@@ -7,7 +7,7 @@ use rocket::{Request, request::Outcome, http::Status, request::{ FromRequest}};
 use rocket_okapi::OpenApiFromRequest;
 use schemars::JsonSchema;
 
-use crate::repository::neo4j_repsitory::Neo4JRepository;
+use crate::logic::logic::{Logic, ApplicationLogic};
 
 use super::{Task, Score, Entity, util::{self, get_string, get_bool, get_u16}};
 
@@ -180,7 +180,7 @@ impl <'a> FromRequest<'a> for Team {
     async fn from_request(request: &'a Request<'_>) -> Outcome<Self, Self::Error> {
         let teamname_opt = request.headers().get_one("teamname");
         let user_id_opt = request.headers().get_one("userid");
-        let state = request.rocket().state::<Neo4JRepository>().unwrap();  // Temporarily switched to Neo4JRepository
+        let state = request.rocket().state::<ApplicationLogic>().unwrap();  // Temporarily switched to Neo4JRepository
 
         if teamname_opt.is_none() {
             return Outcome::Failure((Status::BadRequest, "Team name is required".to_owned()));

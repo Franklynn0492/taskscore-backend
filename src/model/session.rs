@@ -8,7 +8,7 @@ use rocket_okapi::{request::{OpenApiFromRequest, RequestHeaderInput}, gen::OpenA
 use schemars::{JsonSchema};
 use base64;
 
-use crate::repository::neo4j_repsitory::Neo4JRepository;
+use crate::logic::logic::{Logic, ApplicationLogic};
 
 use super::{User, Entity};
 use rand::Rng;
@@ -76,7 +76,7 @@ impl <'a> FromRequest<'a> for Session {
     type Error = String;
 
     async fn from_request(request: &'a Request<'_>) -> Outcome<Self, Self::Error> {
-        let repository = request.rocket().state::<Neo4JRepository>();
+        let repository = request.rocket().state::<ApplicationLogic>();
         if repository.is_none() {
             return Outcome::Failure((Status::InternalServerError, "Missing status".to_owned()))
         }

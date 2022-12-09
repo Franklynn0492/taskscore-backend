@@ -3,14 +3,13 @@ use rocket::response::status::NotFound;
 use rocket::serde::json::Json;
 use rocket::State;
 use rocket_okapi::openapi;
+use crate::logic::logic::{Logic, ApplicationLogic};
 use crate::model::session::LoginRequest;
 use crate::model::{Session};
-use crate::repository::neo4j_repsitory::Neo4JRepository;
-use crate::repository::repository::Repository;
 
 #[openapi(tag = "Session")]
 #[post("/session/login")]
-pub async fn login<'a>(login_request: LoginRequest, repository: &State<Neo4JRepository>, jar: &CookieJar<'_>) -> Result<Json<Session>, NotFound<String>> {
+pub async fn login<'a>(login_request: LoginRequest, repository: &State<ApplicationLogic>, jar: &CookieJar<'_>) -> Result<Json<Session>, NotFound<String>> {
     let session_result = repository.login(login_request).await;
     match session_result {
         Ok(session) => {
@@ -30,7 +29,7 @@ pub async fn get_current_session<'a>(session: Session) -> Json<Session> {
 
 #[openapi(tag = "Session")]
 #[delete("/session/logout")]
-pub async fn logout<'a>(session: Session, repository: &State<Neo4JRepository>) -> Result<Json<()>, NotFound<String>> {
+pub async fn logout<'a>(session: Session, repository: &State<ApplicationLogic>) -> Result<Json<()>, NotFound<String>> {
     match repository.logout(&session.id).await {
         Ok(_) => Ok(Json(())),
         Err(msg) => Err(NotFound(msg))

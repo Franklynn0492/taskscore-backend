@@ -16,7 +16,7 @@ impl  UserRepository {
     }
 
     async fn find_user_by_username_const<'a>(&'a self, username: &String) -> Result<Option<crate::model::User>, DbActionError> {
-        let statement = "MATCH (p:Person {username: $username}) RETURN p;";
+        let statement = "MATCH (p:Person {username: $username}) RETURN p;".to_owned();
         let params = Params::from_iter(vec![("username", username.clone())]);
         // storing result for debug reasons
         let result = self.client.fetch_single::<User, u32>(statement, params).await;
@@ -37,9 +37,9 @@ impl  ReadRepository<User, u32> for UserRepository {
 #[async_trait]
 impl  ModifyRepository<User, u32> for UserRepository {
     async fn update(&self, entity_with_update_values: &User) -> Result<User, DbActionError> {
-        let statement = "MATCH (p:Person) WHERE id(p) = $id SET p.display_name = '$display_name', p.password = '$password', p.username = '$username' RETURN p";
-        let params = Params::from_iter(vec![("id", entity_with_update_values.id.to_string()), ("display_name", entity_with_update_values.display_name),
-            ("password", entity_with_update_values.pwd_hash_components.unwrap_or("".to_owned())), ("username", entity_with_update_values.username)]);
+        let statement = "MATCH (p:Person) WHERE id(p) = $id SET p.display_name = '$display_name', p.password = '$password', p.username = '$username' RETURN p".to_owned();
+        let params = Params::from_iter(vec![("id", entity_with_update_values.id.to_string()), ("display_name", entity_with_update_values.display_name.clone()),
+            ("password", entity_with_update_values.pwd_hash_components.clone().unwrap_or("".to_owned())), ("username", entity_with_update_values.username.clone())]);
         
         let result = self.client.update::<User, u32>(statement, params).await;
 
@@ -50,9 +50,9 @@ impl  ModifyRepository<User, u32> for UserRepository {
 #[async_trait]
 impl  WriteRepository<User, u32> for UserRepository {
     async fn add(&self, new_entity: &User) -> Result<User, DbActionError> {
-        let statement = "CREATE (p:Person {username: '$username', display_name: '$display_name', password: '$password', is_admin: &is_admin }) RETURN p";
-        let params = Params::from_iter(vec![("username", new_entity.username), ("display_name", new_entity.display_name),
-            ("password", new_entity.pwd_hash_components.unwrap_or("".to_owned())), ("is_admin", new_entity.is_admin.to_string())]);
+        let statement = "CREATE (p:Person {username: '$username', display_name: '$display_name', password: '$password', is_admin: &is_admin }) RETURN p".to_owned();
+        let params = Params::from_iter(vec![("username", new_entity.username.clone()), ("display_name", new_entity.display_name.clone()),
+            ("password", new_entity.pwd_hash_components.clone().unwrap_or("".to_owned())), ("is_admin", new_entity.is_admin.to_string())]);
         
         let result = self.client.create::<User, u32>(statement, params).await;
 

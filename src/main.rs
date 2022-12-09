@@ -1,4 +1,3 @@
-use repository::neo4j_repsitory::Neo4JRepository;
 use futures::executor::block_on;
 use rocket::response::status::NotFound;
 use rocket::serde::json::Json;
@@ -11,6 +10,7 @@ use resource::task_resource::*;
 use resource::user_resource::*;
 use resource::response::Response;
 use rocket_okapi::{openapi, openapi_get_routes};
+use logic::logic::ApplicationLogic;
 
 
 mod model;
@@ -43,7 +43,7 @@ async fn main() {
 
     let _ = rocket::build()
 
-    .manage(block_on(Neo4JRepository::connect()).unwrap())
+    .manage(block_on(ApplicationLogic::new()).unwrap())
     .mount(context_root, openapi_get_routes![hello,
         get_config,
         score, get_score_of_user, get_score_of_current_user,

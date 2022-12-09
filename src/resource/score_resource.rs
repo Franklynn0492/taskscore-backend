@@ -3,13 +3,12 @@ use rocket::response::status::NotFound;
 use rocket::serde::json::Json;
 use rocket::State;
 use rocket_okapi::openapi;
-use crate::repository::repository::Repository;
+use crate::logic::logic::{Logic, ApplicationLogic};
 use crate::model::{Score, Session};
-use crate::repository::neo4j_repsitory::Neo4JRepository;
 
 #[openapi(tag = "Score")]
 #[post("/score/<task_id>")]
-pub async fn score<'a>(session: Session, task_id: u32, repository: &State<Neo4JRepository>) -> Result<Json<u16>, NotFound<String>> {
+pub async fn score<'a>(session: Session, task_id: u32, repository: &State<ApplicationLogic>) -> Result<Json<u16>, NotFound<String>> {
     let user_mutex_guard = session.user.lock().unwrap();
     let user_id = user_mutex_guard.id;
     std::mem::drop(user_mutex_guard);
@@ -22,7 +21,7 @@ pub async fn score<'a>(session: Session, task_id: u32, repository: &State<Neo4JR
 
 #[openapi(tag = "Score")]
 #[get("/score/<user_id>")]
-pub async fn get_score_of_user<'a>(user_id: u32, repository: &State<Neo4JRepository>) -> Option<Json<Vec<Score>>> {
+pub async fn get_score_of_user<'a>(user_id: u32, repository: &State<ApplicationLogic>) -> Option<Json<Vec<Score>>> {
     repository.get_user(user_id).await.and_then(|user| Some(Json(user.scores)))
 }
 
