@@ -36,12 +36,21 @@ impl Neo4JClient {
         dotenv().ok();
         let db_addr = env::var("TS_DATABASE_ADDRESS").or(Err("Database address not configured".to_owned()))?;
 
+        info!("Connect to DB triggered; DB address: {}", db_addr);
+
         let stream = TcpStream::connect(db_addr).await.or(Err("unable to create TCP connection to database".to_owned()))?;
         let stream = BufStream::new(stream).compat();
     
         // Create a new connection to the server and perform a handshake to establish a
         // protocol version. This example demonstrates usage of the v4.3 or v4.2 protocol.
+        debug!("Creating connection...");
         let result = Client::new(stream, &[V4_3, V4_2, 0, 0]).await;
+        if (result.is_err()) {
+            let error = format!("Connecting to database failed; error: {}", result.unwrap_err());
+            error!("{}", error);
+            return Err(error);
+        }
+
         let mut client = result.unwrap();
          
         // Send a HELLO message with authentication details to the server to initialize
