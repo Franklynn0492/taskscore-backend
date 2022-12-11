@@ -7,15 +7,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'TaskScore'",
+            "name": "Debug executable 'task_score'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=TaskScore",
-                    "--package=TaskScore"
+                    "--bin=task_score",
+                    "--package=task_score"
                 ],
                 "filter": {
-                    "name": "TaskScore",
+                    "name": "task_score",
                     "kind": "bin"
                 }
             },
@@ -25,16 +25,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'TaskScore'",
+            "name": "Debug unit tests in executable 'task_score'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=TaskScore",
-                    "--package=TaskScore"
+                    "--bin=task_score",
+                    "--package=task_score"
                 ],
                 "filter": {
-                    "name": "TaskScore",
+                    "name": "task_score",
                     "kind": "bin"
                 }
             },
