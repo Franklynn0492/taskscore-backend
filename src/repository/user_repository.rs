@@ -2,7 +2,7 @@ use std::{rc::Rc, sync::Arc};
 
 use bolt_client::{Params};
 
-use crate::{model::User};
+use crate::{model::{User, Entity}};
 
 use super::{client::{Neo4JClient, DbClient}, repository::{ReadRepository, DbActionError, ModifyRepository, WriteRepository, ReadAllRepository}};
 
@@ -16,7 +16,7 @@ impl  UserRepository {
     }
 
     pub async fn find_user_by_username(&self, username: &String) -> Result<Option<crate::model::User>, DbActionError> {
-        let statement = "MATCH (p:Person {username: $username}) RETURN p;".to_owned();
+        let statement = format!("MATCH (u:{} {{username: $username}}) RETURN u", User::get_node_type_name());
         let params = Params::from_iter(vec![("username", username.clone())]);
         // storing result for debug reasons
         let result = self.client.fetch_single::<User, u32>(statement, params).await;
@@ -37,7 +37,7 @@ impl  ReadRepository<User, u32> for UserRepository {
 #[async_trait]
 impl  ModifyRepository<User, u32> for UserRepository {
     async fn update(&self, entity_with_update_values: &User) -> Result<User, DbActionError> {
-        let statement = "MATCH (p:Person) WHERE id(p) = $id SET p.display_name = '$display_name', p.password = '$password', p.username = '$username' RETURN p".to_owned();
+        let statement = format!("MATCH (u:{}) WHERE id(p) = $id SET p.display_name = '$display_name', p.password = '$password', p.username = '$username' RETURN u", User::get_node_type_name());
         let params = Params::from_iter(vec![("id", entity_with_update_values.id.to_string()), ("display_name", entity_with_update_values.display_name.clone()),
             ("password", entity_with_update_values.pwd_hash_components.clone().unwrap_or("".to_owned())), ("username", entity_with_update_values.username.clone())]);
         
@@ -50,7 +50,7 @@ impl  ModifyRepository<User, u32> for UserRepository {
 #[async_trait]
 impl  WriteRepository<User, u32> for UserRepository {
     async fn add(&self, new_entity: &User) -> Result<User, DbActionError> {
-        let statement = "CREATE (p:Person {username: '$username', display_name: '$display_name', password: '$password', is_admin: &is_admin }) RETURN p".to_owned();
+        let statement = format!("CREATE (u:{} {{username: '$username', display_name: '$display_name', password: '$password', is_admin: &is_admin }}) RETURN u", User::get_node_type_name());
         let params = Params::from_iter(vec![("username", new_entity.username.clone()), ("display_name", new_entity.display_name.clone()),
             ("password", new_entity.pwd_hash_components.clone().unwrap_or("".to_owned())), ("is_admin", new_entity.is_admin.to_string())]);
         

@@ -1,9 +1,9 @@
 MATCH (n) DETACH DELETE n;
 
-CREATE (u_fl:Person {username: 'roterkohl', display_name: 'Flori', password: 'Flori1234', is_admin: true }),
-	(u_mi:Person {username: 'brutours.de', display_name: 'Michi', password: 'Michi1234' }),
-	(u_fr:Person {username: 'dliwespf', display_name: 'Franki', password: 'Franki1234' }),
-	(u_to:Person {username: 'topher', display_name: 'Topher', password: 'Topheri1234', is_admin: true }),
+CREATE (u_fl:User {username: 'roterkohl', display_name: 'Flori', password: 'Flori1234', is_admin: true }),
+	(u_mi:User {username: 'brutours.de', display_name: 'Michi', password: 'Michi1234' }),
+	(u_fr:User {username: 'dliwespf', display_name: 'Franki', password: 'Franki1234' }),
+	(u_to:User {username: 'topher', display_name: 'Topher', password: 'Topheri1234', is_admin: true }),
 
 	(t_bl:Task { id: 1, name: 'Blumen gießen', points: 10, enabled: true }),
 	(t_st:Task { id: 2, name: 'Stunden abgeben', points: 30, enabled: false }),

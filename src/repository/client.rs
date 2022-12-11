@@ -170,7 +170,7 @@ impl DbClient for Neo4JClient {
         let mut client = self.client.lock().await;
 
         let entities = self.pull(&mut client, Some(Metadata::from_iter(vec![("n", 1)]))).await;
-        Neo4JClient::discard(&mut client).await;
+        //Neo4JClient::discard(&mut client).await;
         entities
     }
 
