@@ -15,7 +15,7 @@ impl  UserRepository {
         UserRepository { client }
     }
 
-    async fn find_user_by_username_const<'a>(&'a self, username: &String) -> Result<Option<crate::model::User>, DbActionError> {
+    pub async fn find_user_by_username(&self, username: &String) -> Result<Option<crate::model::User>, DbActionError> {
         let statement = "MATCH (p:Person {username: $username}) RETURN p;".to_owned();
         let params = Params::from_iter(vec![("username", username.clone())]);
         // storing result for debug reasons

@@ -15,7 +15,7 @@ pub async fn get_user<'a>(id: u32, repository: &State<ApplicationLogic>) -> Opti
 #[openapi(tag = "User")]
 #[get("/user/username/<username>")]
 pub async fn get_user_by_username<'a>(username: String, repository: &State<ApplicationLogic>) -> Option<Json<User>> {
-    repository.find_user_by_username_const(&username).await.map_or(None, |user| Some(Json(user)))
+    repository.find_user_by_username(&username).await.map_or(None, |user| Some(Json(user)))
 }
 
 #[openapi(tag = "User")]
