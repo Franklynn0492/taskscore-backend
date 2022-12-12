@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, collections::HashMap};
 use dotenv::dotenv;
 use rocket::{tokio::{net::TcpStream, io::BufStream}, futures::lock::Mutex};
 
@@ -24,6 +24,7 @@ pub trait DbClient {
     async fn create<E: Entity<I>, I: Id> (&self, statement: String, params: Params) -> Result<E, DbActionError>;
     async fn update<E: Entity<I>, I: Id> (&self, statement: String, params: Params) -> Result<E, DbActionError>;
     async fn delete<E: Entity<I>, I: Id> (&self, entity: &E) -> Result<(), DbActionError>;
+    async fn create_relationship<S: Entity<IS>, IS: Id, T: Entity<IT>, IT: Id, R: Entity<IR>, IR: Id> (&self, source: &S, target: &T, name: &String, params_opt: Option<HashMap<&'static str, String>>) -> Result<R, DbActionError>;
 }
 
 pub struct Neo4JClient {
@@ -188,6 +189,25 @@ impl DbClient for Neo4JClient {
 
         result
 
+    }
+
+    async fn create_relationship<S: Entity<IS>, IS: Id, T: Entity<IT>, IT: Id, R: Entity<IR>, IR: Id> (&self, source: &S, target: &T, name: &String, params_opt: Option<HashMap<&'static str, String>>) -> Result<R, DbActionError> {
+        // Pattern: MATCH (u:User) MATCH (t:Task) WHERE id(u) = 2 AND id(t) = 4 MERGE (u)-[:SCORED {points: 11, scored_at: localdatetime()}] -> (t)
+
+        let mut param_str = 
+        if params_opt.is_some() {
+            let params = params_opt.unwrap();
+            serde_json::to_string(&params).unwrap()
+        } else {
+            String::new()
+        };
+
+        let statement = format!("MATCH (s:{}) MATCH (t:{}) WHERE id(s) = {} AND id(t) = {} MERGE (s)-[:{} {}] -> (t)", S::get_node_type_name(), T::get_node_type_name(),
+            source.get_id(), target.get_id(), name, param_str);
+
+        let result = self.perform_action_returning_one_entity("Create relationship", statement, None).await;
+
+        result
     }
 
     async fn update<E: Entity<I>, I: Id> (&self, statement: String, params: Params) -> Result<E, DbActionError> {
