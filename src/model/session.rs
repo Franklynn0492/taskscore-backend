@@ -10,7 +10,7 @@ use base64;
 
 use crate::logic::logic::{Logic, ApplicationLogic};
 
-use super::{User, Entity};
+use super::{User, Entity, util::{get_string, get_utc}};
 use rand::Rng;
 
 const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -18,17 +18,19 @@ const PASSWORD_LEN: usize = 30;
 
 #[derive(serde::Serialize, Clone, OpenApiFromRequest, JsonSchema)]
 pub struct Session {
-    pub id: String,
+    pub id: u32,
+    pub session_id: String,
     pub user: Arc<Mutex<User>>,
     pub started: DateTime::<Utc>,
     pub refreshed: DateTime::<Utc>,
 }
 
 impl Session {
-    pub fn new(user: Arc<Mutex<User>>) -> Session {
+    pub fn new(id: u32, user: Arc<Mutex<User>>) -> Session {
         let now = Utc::now();
         Session {
-            id: Session::generate_session_id(),
+            id,
+            session_id: Session::generate_session_id(),
             user,
             started: now.clone(),
             refreshed: now,
@@ -53,8 +55,8 @@ impl Session {
     }
 }
 
-impl Entity<String> for Session {
-    fn get_id(&self) -> &String {
+impl Entity<u32> for Session {
+    fn get_id(&self) -> &u32 {
         &self.id
     }
 
@@ -65,7 +67,13 @@ impl Entity<String> for Session {
 
 impl From<Node> for Session {
     fn from(value: Node) -> Self {
-        !unimplemented!();
+        let properties = value.properties();
+        let id =  value.node_identity() as u32;
+        let session_id =  get_string(properties, "session_id", "");
+        let started = get_utc(properties, "started", Utc::now());
+        let refreshed = get_utc(properties, "refreshed", Utc::now());
+        // Todo: Relationship to user
+        Session{id, session_id, user: Arc::new(Mutex::new(User {id: u32::MAX, display_name: "Guy Incognito".to_owned(), is_admin: true, points: 9, pwd_hash_components: None, scores: vec![], username: "guyincognito".to_owned()})), started, refreshed}
     }
 }
 

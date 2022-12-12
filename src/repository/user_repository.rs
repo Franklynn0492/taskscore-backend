@@ -1,4 +1,4 @@
-use std::{rc::Rc, sync::Arc};
+use std::{sync::Arc};
 
 use bolt_client::{Params};
 
@@ -11,7 +11,7 @@ pub struct UserRepository {
 }
 
 impl  UserRepository {
-    pub fn new(client:  Arc<Neo4JClient>) -> UserRepository {
+    pub fn new(client: Arc<Neo4JClient>) -> UserRepository {
         UserRepository { client }
     }
 
@@ -37,7 +37,7 @@ impl  ReadRepository<User, u32> for UserRepository {
 #[async_trait]
 impl  ModifyRepository<User, u32> for UserRepository {
     async fn update(&self, entity_with_update_values: &User) -> Result<User, DbActionError> {
-        let statement = format!("MATCH (u:{}) WHERE id(p) = $id SET p.display_name = '$display_name', p.password = '$password', p.username = '$username' RETURN u", User::get_node_type_name());
+        let statement = format!("MATCH (u:{}) WHERE id(u) = $id SET u.display_name = '$display_name', u.password = '$password', u.username = '$username' RETURN u", User::get_node_type_name());
         let params = Params::from_iter(vec![("id", entity_with_update_values.id.to_string()), ("display_name", entity_with_update_values.display_name.clone()),
             ("password", entity_with_update_values.pwd_hash_components.clone().unwrap_or("".to_owned())), ("username", entity_with_update_values.username.clone())]);
         
