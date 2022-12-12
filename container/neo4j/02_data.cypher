@@ -1,3 +1,5 @@
+:USE TASKSCORE;
+
 MATCH (n) DETACH DELETE n;
 
 CREATE (u_fl:User {username: 'roterkohl', display_name: 'Flori', password: 'Flori1234', is_admin: true }),

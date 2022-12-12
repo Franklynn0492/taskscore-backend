@@ -2,7 +2,7 @@
 bash ./remove_containers.sh
 
 echo "Removing images..."
-docker image rm taskscore-app
-docker image rm taskscore-neo4j
-docker image rm taskscore-nginx
+docker image rm taskscore_app
+docker image rm taskscore_neo4j
+docker image rm taskscore_nginx
 echo "Done removing images."
