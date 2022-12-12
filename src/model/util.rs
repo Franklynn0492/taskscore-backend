@@ -23,3 +23,10 @@ pub fn get_u16(properties: &HashMap<String, Value>, key: &str, alternative: u16)
         _ => alternative
     }
 }
+
+pub fn get_u32(properties: &HashMap<String, Value>, key: &str, alternative: u32) -> u32  {
+    match properties.get(key) {
+        Some(Value::Integer(val)) => *val as u32,
+        _ => alternative
+    }
+}

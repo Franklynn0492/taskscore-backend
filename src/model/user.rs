@@ -9,7 +9,7 @@ use schemars::JsonSchema;
 
 use crate::logic::logic::{Logic, ApplicationLogic};
 
-use super::{Task, Score, Entity, util::{self, get_string, get_bool, get_u16}};
+use super::{Task, Score, Entity, util::{self, get_string, get_bool, get_u16, get_u32}};
 
 #[derive(serde::Serialize, Clone, JsonSchema, OpenApiFromRequest)]
 pub struct User {
@@ -109,12 +109,13 @@ impl From<Node> for User {
 
     fn from(value: Node) -> Self {
         let properties = value.properties();
+        let id =  value.node_identity() as u32;
         let username =  get_string(properties, "username", "N/A");
         let display_name = get_string(properties, "display_name", "N/A");
         let is_admin = get_bool(properties, "is_admin", false);
         let points = get_u16(properties, "points", 0);
 
-        User{id: 0, username, display_name, is_admin, points, scores: vec![], pwd_hash_components: None}
+        User{id, username, display_name, is_admin, points, scores: vec![], pwd_hash_components: None}
     }
 }
 
