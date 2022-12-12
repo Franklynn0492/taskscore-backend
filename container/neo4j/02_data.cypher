@@ -7,10 +7,10 @@ CREATE (u_fl:User {username: 'roterkohl', display_name: 'Flori', password: 'Flor
 	(u_fr:User {username: 'dliwespf', display_name: 'Franki', password: 'Franki1234' }),
 	(u_to:User {username: 'topher', display_name: 'Topher', password: 'Topheri1234', is_admin: true }),
 
-	(t_bl:Task { id: 1, name: 'Blumen gießen', points: 10, enabled: true }),
-	(t_st:Task { id: 2, name: 'Stunden abgeben', points: 30, enabled: false }),
-	(t_sp:Task { id: 3, name: 'Spülmaschine ausräumen', points: 52, enabled: true }),
-	(t_ka:Task { id: 4, name: 'Kaffee kochen', points: 75, enabled: true }),
+	(t_bl:Task { name: 'Blumen gießen', points: 10, enabled: true }),
+	(t_st:Task { name: 'Stunden abgeben', points: 30, enabled: false }),
+	(t_sp:Task { name: 'Spülmaschine ausräumen', points: 52, enabled: true }),
+	(t_ka:Task { name: 'Kaffee kochen', points: 75, enabled: true }),
 	
 	(te_ba: Team { id: 1, name: 'Babes' }),
 	(te_ch: Team { id: 2, name: 'Church' }),
