@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::{sync::{Arc, Mutex}, fmt::Display};
 
 use bolt_client::bolt_proto::value::Node;
 use chrono::{DateTime, Utc};
@@ -18,7 +18,7 @@ const PASSWORD_LEN: usize = 30;
 
 #[derive(serde::Serialize, Clone, OpenApiFromRequest, JsonSchema)]
 pub struct Session {
-    pub id: u32,
+    pub id: Option<u32>,
     pub session_id: String,
     pub user: Arc<Mutex<User>>,
     pub started: DateTime::<Utc>,
@@ -26,7 +26,7 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new(id: u32, user: Arc<Mutex<User>>) -> Session {
+    pub fn new(id: Option<u32>, user: Arc<Mutex<User>>) -> Session {
         let now = Utc::now();
         Session {
             id,
@@ -56,8 +56,8 @@ impl Session {
 }
 
 impl Entity<u32> for Session {
-    fn get_id(&self) -> &u32 {
-        &self.id
+    fn get_id(&self) -> Option<&u32>{
+        self.id.and_then(|i| Some(&i))
     }
 
     fn get_node_type_name() -> &'static str {
@@ -65,15 +65,21 @@ impl Entity<u32> for Session {
     }
 }
 
+impl Display for Session {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.fmt_entity(f)
+    }
+}
+
 impl From<Node> for Session {
     fn from(value: Node) -> Self {
         let properties = value.properties();
-        let id =  value.node_identity() as u32;
+        let id =  Some(value.node_identity() as u32);
         let session_id =  get_string(properties, "session_id", "");
         let started = get_utc(properties, "started", Utc::now());
         let refreshed = get_utc(properties, "refreshed", Utc::now());
         // Todo: Relationship to user
-        Session{id, session_id, user: Arc::new(Mutex::new(User {id: u32::MAX, display_name: "Guy Incognito".to_owned(), is_admin: true, points: 9, pwd_hash_components: None, scores: vec![], username: "guyincognito".to_owned()})), started, refreshed}
+        Session{id, session_id, user: Arc::new(Mutex::new(User {id: None, display_name: "Guy Incognito".to_owned(), is_admin: true, points: 9, pwd_hash_components: None, scores: vec![], username: "guyincognito".to_owned()})), started, refreshed}
     }
 }
 

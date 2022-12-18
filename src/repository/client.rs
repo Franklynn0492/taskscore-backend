@@ -1,4 +1,4 @@
-use std::{env, collections::HashMap};
+use std::{env, collections::HashMap, sync::Arc};
 use dotenv::dotenv;
 use rocket::{tokio::{net::TcpStream, io::BufStream}, futures::lock::Mutex};
 
@@ -8,7 +8,7 @@ use tokio_util::compat::*;
 #[cfg(test)]
 use mockall::automock;
 
-use crate::model::{Entity, Id};
+use crate::model::{Entity, Id, Relation};
 
 use super::repository::DbActionError;
 
@@ -24,7 +24,7 @@ pub trait DbClient {
     async fn create<E: Entity<I>, I: Id> (&self, statement: String, params: Params) -> Result<E, DbActionError>;
     async fn update<E: Entity<I>, I: Id> (&self, statement: String, params: Params) -> Result<E, DbActionError>;
     async fn delete<E: Entity<I>, I: Id> (&self, entity: &E) -> Result<(), DbActionError>;
-    async fn create_relationship<S: Entity<IS>, IS: Id, T: Entity<IT>, IT: Id, R: Entity<IR>, IR: Id> (&self, source: &S, target: &T, name: &String, params_opt: Option<HashMap<&'static str, String>>) -> Result<R, DbActionError>;
+    async fn create_relationship<S: Entity<IS>, IS: Id, T: Entity<IT>, IT: Id> (&self, source: Arc<S>, target: Arc<T>, name: &String, params_opt: Option<HashMap<&'static str, String>>) -> Result<Relation<S, IS, T, IT>, DbActionError>;
 }
 
 pub struct Neo4JClient {
@@ -191,19 +191,11 @@ impl DbClient for Neo4JClient {
 
     }
 
-    async fn create_relationship<S: Entity<IS>, IS: Id, T: Entity<IT>, IT: Id, R: Entity<IR>, IR: Id> (&self, source: &S, target: &T, name: &String, params_opt: Option<HashMap<&'static str, String>>) -> Result<R, DbActionError> {
-        // Pattern: MATCH (u:User) MATCH (t:Task) WHERE id(u) = 2 AND id(t) = 4 MERGE (u)-[:SCORED {points: 11, scored_at: localdatetime()}] -> (t)
+    async fn create_relationship<S: Entity<IS>, IS: Id, T: Entity<IT>, IT: Id> (&self, source: Arc<S>, target: Arc<T>, name: &String, params_opt: Option<HashMap<&'static str, String>>) -> Result<Relation<S, IS, T, IT>, DbActionError> {
 
-        let mut param_str = 
-        if params_opt.is_some() {
-            let params = params_opt.unwrap();
-            serde_json::to_string(&params).unwrap()
-        } else {
-            String::new()
-        };
+        let relation = Relation::new::<S, T>(source, target, name);
 
-        let statement = format!("MATCH (s:{}) MATCH (t:{}) WHERE id(s) = {} AND id(t) = {} MERGE (s)-[:{} {}] -> (t)", S::get_node_type_name(), T::get_node_type_name(),
-            source.get_id(), target.get_id(), name, param_str);
+        let statement = relation.get_create_statement();
 
         let result = self.perform_action_returning_one_entity("Create relationship", statement, None).await;
 
