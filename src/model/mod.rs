@@ -13,9 +13,10 @@ pub mod user;
 pub mod task;
 mod util;
 
-pub trait Entity<Id: ?Sized>: From<Node> + Send + Sync + 'static + Display {
-    
-    fn get_id(&self) -> Option<&Id>;
+pub trait Entity: From<Node> + Send + Sync + 'static + Display + Debug {
+    type I: Id;
+
+    fn get_id(&self) -> Option<&Self::I>;
 
     fn get_node_type_name() -> &'static str;
     
@@ -23,29 +24,30 @@ pub trait Entity<Id: ?Sized>: From<Node> + Send + Sync + 'static + Display {
         let id_str = if self.get_id().is_none() {
             "none".to_string()
         } else {
-            self.get_id().unwrap()
+            self.get_id().unwrap().to_string()
         };
 
-        write!(f, "[{}; id: {})]", Entity::get_node_type_name(), id_str)
+        write!(f, "[{}; id: {})]", Self::get_node_type_name(), id_str)
     }
 }
 
-pub trait Id: Send + Sync + 'static + Display  {}
+pub trait Id: Send + Sync + 'static + Display + TryFrom<i64> {}
 
-// TODO: check if this can be improved/avoided
-impl Id for u32 {}
+impl Id for u32 {
+}
 
-pub struct Relation<S: Entity<IS>, IS: Id, T: Entity<IT>, IT: Id> {
+#[derive(Debug)]
+pub struct Relation<S: Entity, T: Entity> {
     source_node: Arc<S>,
     target_node: Arc<T>,
     name: &'static str,
     params_opt: Option<HashMap<&'static str, String>>,
 }
 
-impl <S: Entity<IS>, IS: Id, T: Entity<IT>, IT: Id> Relation<S, IS, T, IT> {
-    pub fn new(source_node: Arc<S>, target_node: Arc<T>, name: &'static str, params_opt: Option<HashMap<&'static str, String>>) -> Result<Relation<S, IS, T, IT>, String> {
+impl <S: Entity, T: Entity> Relation<S, T> {
+    pub fn new(source_node: Arc<S>, target_node: Arc<T>, name: &'static str, params_opt: Option<HashMap<&'static str, String>>) -> Result<Relation<S, T>, String> {
         if source_node.get_id().is_none() || target_node.get_id().is_none() {
-            Err(format!("Both nodes need to have an Id when creating a relation; source_node.id: {}; target_node.id: {}", source_node.get_id(), target_node.get_id()))
+            Err(format!("Both nodes need to have an Id when creating a relation; source_node.id: {}; target_node.id: {}", source_node, target_node))
         } else {
             Ok(Relation { source_node: source_node.clone(), target_node: target_node.clone(), name, params_opt })
         }
@@ -71,9 +73,9 @@ impl <S: Entity<IS>, IS: Id, T: Entity<IT>, IT: Id> Relation<S, IS, T, IT> {
     }
 
 
-    pub async fn try_from(value: &Relationship, source_repository: &dyn ReadRepository<S, IS>, target_repository: &dyn ReadRepository<T, IT>) -> Result<Self, String> {
-        let src_id = value.start_node_identity() as IS;
-        let target_id = value.end_node_identity() as IT;
+    pub async fn try_from(value: &Relationship, source_repository: &dyn ReadRepository<S>, target_repository: &dyn ReadRepository<T>) -> Result<Self, String> {
+        let src_id = value.start_node_identity();
+        let target_id = value.end_node_identity().try_into().unwrap();
         let properties = value.properties();
 
         let source_res = Self::resolve_by_id(source_repository, &src_id).await;
@@ -85,12 +87,22 @@ impl <S: Entity<IS>, IS: Id, T: Entity<IT>, IT: Id> Relation<S, IS, T, IT> {
         !unimplemented!()
     }
 
-    async fn resolve_by_id<E: Entity<I>, I: Id>(repository: &dyn ReadRepository<E, I>, id: &I) -> Result<E, String> {
-        let entity_result = repository.find_by_id(id).await;
-        match entity_result {
-            Err(S) => Err(s),
-            Ok(None) => Err(format!("Unable to create Relation; could not find entity of type {} with id {}", E::get_node_type_name(), id)),
-            Ok(Some(e)) => Some(e)
-        }
+    async fn resolve_by_id<E: Entity>(repository: &dyn ReadRepository<E>, id: &i64) -> Result<E, String> {
+        let entity_id_res = (*id).try_into();
+        let result = match entity_id_res {
+            Err(_) => Err(format!("Id {} stored in relationship to entity {} is not convertible to target id", id, E::get_node_type_name())),
+            Ok(entity_id) => {
+
+                let entity_result = repository.find_by_id(&entity_id).await;
+                match entity_result {
+                    Err(s) => Err(s),
+                    Ok(None) => Err(format!("Unable to create Relation; could not find entity of type {} with id {}", E::get_node_type_name(), id)),
+                    Ok(Some(e)) => Ok(e)
+                }
+            }
+        };
+
+        result
+
     }
 }

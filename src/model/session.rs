@@ -16,7 +16,7 @@ use rand::Rng;
 const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 const PASSWORD_LEN: usize = 30;
 
-#[derive(serde::Serialize, Clone, OpenApiFromRequest, JsonSchema)]
+#[derive(serde::Serialize, Clone, OpenApiFromRequest, JsonSchema, Debug)]
 pub struct Session {
     pub id: Option<u32>,
     pub session_id: String,
@@ -55,7 +55,9 @@ impl Session {
     }
 }
 
-impl Entity<u32> for Session {
+impl Entity for Session {
+    type I = u32;
+
     fn get_id(&self) -> Option<&u32>{
         self.id.and_then(|i| Some(&i))
     }

@@ -10,7 +10,7 @@ use crate::model::{Score, Session};
 #[post("/score/<task_id>")]
 pub async fn score<'a>(session: Session, task_id: u32, repository: &State<ApplicationLogic>) -> Result<Json<u16>, NotFound<String>> {
     let user_mutex_guard = session.user.lock().unwrap();
-    let user_id = user_mutex_guard.id;
+    let user_id = user_mutex_guard.id.unwrap();
     std::mem::drop(user_mutex_guard);
 
     match block_on(repository.score(user_id, task_id)) {

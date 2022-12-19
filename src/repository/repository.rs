@@ -8,19 +8,19 @@ pub type DbActionError = String;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
-pub trait ReadRepository<E, I: Send + Sync + 'static> where E: Entity<I> {
-    async fn find_by_id(&self, id: &I) -> Result<Option<E>, DbActionError>;
+pub trait ReadRepository<E: Entity> {
+    async fn find_by_id(&self, id: &E::I) -> Result<Option<E>, DbActionError>;
 }
 
 #[cfg_attr(test, automock)]
 #[async_trait]
-pub trait ReadAllRepository<E, I: Send + Sync + 'static> where E: Entity<I> {
+pub trait ReadAllRepository<E: Entity> {
     async fn find_all(&self) -> Result<Vec<E>, DbActionError>;
 }
 
 #[cfg_attr(test, automock)]
 #[async_trait]
-pub trait WriteRepository<E, I: Send + Sync + 'static> where E: Entity<I> {
+pub trait WriteRepository<E: Entity> {
     async fn add(&self, new_entity: &E) -> Result<E, DbActionError>;
 
     async fn delete(&self, entity_with_update_values: &E) -> Result<(), DbActionError>;
@@ -28,7 +28,7 @@ pub trait WriteRepository<E, I: Send + Sync + 'static> where E: Entity<I> {
 
 #[cfg_attr(test, automock)]
 #[async_trait]
-pub trait ModifyRepository<E, I: Send + Sync + 'static> where E: Entity<I> {
+pub trait ModifyRepository<E: Entity> {
     async fn update(&self, entity_with_update_values: &E) -> Result<E, DbActionError>;
 }
 

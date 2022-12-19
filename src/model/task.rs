@@ -7,7 +7,7 @@ use rocket_okapi::okapi::schemars::JsonSchema;
 
 use super::Entity;
 
-#[derive(serde::Serialize, Clone, JsonSchema)]
+#[derive(serde::Serialize, Clone, JsonSchema, Debug)]
 pub struct Task {
     pub id: Option<u32>,
     pub name: String,
@@ -15,7 +15,9 @@ pub struct Task {
     pub enabled: bool,
 }
 
-impl Entity<u32> for Task {
+impl Entity for Task {
+    type I = u32;
+
     fn get_id(&self) -> Option<&u32>{
         self.id.and_then(|i| Some(&i))
     }
@@ -37,7 +39,7 @@ impl From<Node> for Task {
     }
 }
 
-#[derive(serde::Serialize, Clone, JsonSchema)]
+#[derive(serde::Serialize, Clone, JsonSchema, Debug)]
 pub struct Score {
     pub task: Task,
     pub points: u16,

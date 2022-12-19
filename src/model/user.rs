@@ -11,7 +11,7 @@ use crate::logic::logic::{Logic, ApplicationLogic};
 
 use super::{Task, Score, Entity, util::{self, get_string, get_bool, get_u16, get_u32}};
 
-#[derive(serde::Serialize, Clone, JsonSchema, OpenApiFromRequest)]
+#[derive(serde::Serialize, Clone, JsonSchema, OpenApiFromRequest, Debug)]
 pub struct User {
     pub id: Option<u32>,
     pub username: String,
@@ -94,7 +94,8 @@ impl Hash for User {
     }
 }
 
-impl Entity<u32> for User {
+impl Entity for User {
+    type I = u32;
     fn get_id(&self) -> Option<&u32>{
         self.id.and_then(|i| Some(&i))
     }
@@ -125,8 +126,7 @@ impl From<Node> for User {
     }
 }
 
-#[derive(Clone)]
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, Clone, Debug)]
 pub struct Team {
     pub id: Option<u32>,
     pub name: String,
@@ -164,7 +164,9 @@ impl Team {
     }
 }
 
-impl Entity<u32> for Team {
+impl Entity for Team {
+    type I = u32;
+
     fn get_id(&self) -> Option<&u32>{
         self.id.and_then(|i| Some(&i))
     }

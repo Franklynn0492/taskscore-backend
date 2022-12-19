@@ -13,7 +13,7 @@ pub async fn login<'a>(login_request: LoginRequest, repository: &State<Applicati
     let session_result = repository.login(login_request).await;
     match session_result {
         Ok(session) => {
-            let session_id: &str = session.id.as_str();
+            let session_id = session.id.unwrap().to_string();
             jar.add(Cookie::new("sid", session_id).into_owned());
             Ok(Json(session))
         },
@@ -30,7 +30,7 @@ pub async fn get_current_session<'a>(session: Session) -> Json<Session> {
 #[openapi(tag = "Session")]
 #[delete("/session/logout")]
 pub async fn logout<'a>(session: Session, repository: &State<ApplicationLogic>) -> Result<Json<()>, NotFound<String>> {
-    match repository.logout(&session.id).await {
+    match repository.logout(&session.session_id).await {
         Ok(_) => Ok(Json(())),
         Err(msg) => Err(NotFound(msg))
     }

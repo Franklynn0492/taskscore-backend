@@ -19,57 +19,61 @@ impl  UserRepository {
         let statement = format!("MATCH (u:{} {{username: $username}}) RETURN u", User::get_node_type_name());
         let params = Params::from_iter(vec![("username", username.clone())]);
         // storing result for debug reasons
-        let result = self.client.fetch_single::<User, u32>(statement, params).await;
+        let result = self.client.fetch_single::<User>(statement, params).await;
 
         result
     }
 }
 
 #[async_trait]
-impl  ReadRepository<User, u32> for UserRepository {
+impl  ReadRepository<User> for UserRepository {
     async fn find_by_id(&self, id: &u32) -> Result<Option<crate::model::User>, DbActionError> {
-        let result = self.client.fetch_by_id::<User, u32>(&id).await;
+        let result = self.client.fetch_by_id::<User>(&id).await;
 
         result
     }
 }
 
 #[async_trait]
-impl  ModifyRepository<User, u32> for UserRepository {
+impl  ModifyRepository<User> for UserRepository {
     async fn update(&self, entity_with_update_values: &User) -> Result<User, DbActionError> {
+        if entity_with_update_values.get_id().is_none() {
+            return Err(format!("Id of entity {} is unknown; entity cannot be modified", entity_with_update_values));
+        }
+
         let statement = format!("MATCH (u:{}) WHERE id(u) = $id SET u.display_name = '$display_name', u.password = '$password', u.username = '$username' RETURN u", User::get_node_type_name());
-        let params = Params::from_iter(vec![("id", entity_with_update_values.id.to_string()), ("display_name", entity_with_update_values.display_name.clone()),
+        let params = Params::from_iter(vec![("id", entity_with_update_values.id.unwrap().to_string()), ("display_name", entity_with_update_values.display_name.clone()),
             ("password", entity_with_update_values.pwd_hash_components.clone().unwrap_or("".to_owned())), ("username", entity_with_update_values.username.clone())]);
         
-        let result = self.client.update::<User, u32>(statement, params).await;
+        let result = self.client.update::<User>(statement, params).await;
 
         result
     }
 }
 
 #[async_trait]
-impl  WriteRepository<User, u32> for UserRepository {
+impl  WriteRepository<User> for UserRepository {
     async fn add(&self, new_entity: &User) -> Result<User, DbActionError> {
         let statement = format!("CREATE (u:{} {{username: '$username', display_name: '$display_name', password: '$password', is_admin: &is_admin }}) RETURN u", User::get_node_type_name());
         let params = Params::from_iter(vec![("username", new_entity.username.clone()), ("display_name", new_entity.display_name.clone()),
             ("password", new_entity.pwd_hash_components.clone().unwrap_or("".to_owned())), ("is_admin", new_entity.is_admin.to_string())]);
         
-        let result = self.client.create::<User, u32>(statement, params).await;
+        let result = self.client.create::<User>(statement, params).await;
 
         result
     }
 
     async fn delete(&self, entity_to_delete: &User) -> Result<(), DbActionError> {
-        let result = self.client.delete::<User, u32>(entity_to_delete).await;
+        let result = self.client.delete::<User>(entity_to_delete).await;
 
         result
     }
 }
 
 #[async_trait]
-impl  ReadAllRepository<User, u32> for UserRepository {
+impl  ReadAllRepository<User> for UserRepository {
     async fn find_all(&self) -> Result<Vec<User>, DbActionError> {
-        let result = self.client.fetch_all::<User, u32>().await;
+        let result = self.client.fetch_all::<User>().await;
 
         result
     }
