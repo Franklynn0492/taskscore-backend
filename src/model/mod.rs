@@ -54,9 +54,20 @@ impl <S: Entity, T: Entity> Relation<S, T> {
     }
 
     pub fn get_create_statement(&self) -> String {
-        // Pattern: MATCH (u:User) MATCH (t:Task) WHERE id(u) = 2 AND id(t) = 4 MERGE (u)-[:SCORED {points: 11, scored_at: localdatetime()}] -> (t)
-        let statement = format!("MATCH (s:{}) MATCH (t:{}) WHERE id(s) = {} AND id(t) = {} MERGE (s)-[:{} {}]->(t) RETURN *",
+        let statement = format!("MATCH (s:{}), (t:{}) WHERE id(s) = {} AND id(t) = {} CREATE (s)-[r:{} {}]->(t) RETURN r",
         S::get_node_type_name(), T::get_node_type_name(), self.source_node.get_id().unwrap(), self.target_node.get_id().unwrap(), self.name, self.params_to_str());
+        statement
+    }
+
+    pub fn get_match_statement(&self) -> String {
+        let statement = format!("MATCH (s:{}) -[r:{}]- (t:{}) WHERE id(s) = {} AND id(t) = {} RETURN r",
+        S::get_node_type_name(), self.name, T::get_node_type_name(), self.source_node.get_id().unwrap(), self.target_node.get_id().unwrap());
+        statement
+    }
+
+    pub fn get_delete_statement(&self) -> String {
+        let statement = format!("MATCH (s:{}) -[r:{}]- (t:{}) WHERE id(s) = {} AND id(t) = {} DELETE r",
+        S::get_node_type_name(), self.name, T::get_node_type_name(), self.source_node.get_id().unwrap(), self.target_node.get_id().unwrap());
         statement
     }
 
