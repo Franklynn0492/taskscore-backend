@@ -78,8 +78,7 @@ impl Neo4JClient {
         }
     }
 
-    async fn pull<E: Entity>(&self, client: &mut Client<Compat<BufStream<TcpStream>>>, metadata: Option<Metadata>) -> Result<Vec<E>, DbActionError> {
-
+    async fn pull_records(&self, client: &mut Client<Compat<BufStream<TcpStream>>>, metadata: Option<Metadata>) -> Result<Vec<Record>, DbActionError> {
         let pull_result = client.pull(metadata).await;
         if pull_result.is_err() {
             let com_err = pull_result.unwrap_err();
@@ -89,6 +88,17 @@ impl Neo4JClient {
         }
 
         let (records, _response) = pull_result.unwrap();
+
+        Ok(records)
+    }
+
+    async fn pull_entities<E: Entity>(&self, client: &mut Client<Compat<BufStream<TcpStream>>>, metadata: Option<Metadata>) -> Result<Vec<E>, DbActionError> {
+        let records_result = self.pull_records(client, metadata).await;
+        if (records_result.is_err()) {
+            return Err(records_result.unwrap_err());
+        }
+
+        let records = records_result.unwrap();
 
         if records.len() == 0 {
             return Ok(vec![]);
@@ -134,7 +144,7 @@ impl Neo4JClient {
         let metadata = Some(Metadata::from_iter(vec![("n", 1)]));
 
         // this pull actually reads the new node we just created on the DB. It is not neccessary in order to complete the create
-        let pull_result = self.pull::<E>(&mut client, metadata).await;
+        let pull_result = self.pull_entities::<E>(&mut client, metadata).await;
         
         let result = pull_result.and_then(|mut entity_vec| entity_vec.pop().ok_or(format!("{} did not return entity", action_name)));
 
@@ -170,7 +180,7 @@ impl DbClient for Neo4JClient {
 
         let mut client = self.client.lock().await;
 
-        let entities = self.pull(&mut client, Some(Metadata::from_iter(vec![("n", i32::MAX)]))).await;
+        let entities = self.pull_entities(&mut client, Some(Metadata::from_iter(vec![("n", i32::MAX)]))).await;
         //Neo4JClient::discard(&mut client).await;
         entities
     }
