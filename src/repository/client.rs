@@ -25,6 +25,9 @@ pub trait DbClient {
     async fn update<E: Entity> (&self, statement: String, params: Params) -> Result<E, DbActionError>;
     async fn delete<E: Entity> (&self, entity: &E) -> Result<(), DbActionError>;
     async fn create_relationship<S: Entity, T: Entity> (&self, source: Arc<S>, target: Arc<T>, name: &String, params_opt: Option<HashMap<&'static str, String>>) -> Result<Relation<S, T>, DbActionError>;
+    async fn fetch_relations_of_type<S: Entity, T: Entity>(&self, source: Arc<S>, name: &String) -> Result<Vec<Relation<S, T>>, DbActionError>;
+    async fn fetch_single_relation<S: Entity, T: Entity>(&self, source: Arc<S>, target: Arc<T>, name: &String) -> Result<Relation<S, T>, DbActionError>;
+    async fn delete_relation<S: Entity, T: Entity>(&self, source: Arc<S>, target: Arc<T>, name: &String) -> Result<(), DbActionError>;
 }
 
 pub struct Neo4JClient {
@@ -262,7 +265,7 @@ impl DbClient for Neo4JClient {
         }
 
         let statement = format!("MATCH (p:{}) WHERE id(p) = $id DETACH DELETE p", E::get_node_type_name());
-        let params = Params::from_iter(vec![("id", entity.get_id().unwrap().to_string())]);
+        let params = Params::from_iter(vec![("id", entity.get_id().as_ref().unwrap().to_string())]);
 
         let run_result = self.run(statement, Some(params)).await;
         
@@ -286,5 +289,17 @@ impl DbClient for Neo4JClient {
         let result = self.perform_action_returning_one_relation("Create relation", statement, None, source, target).await;
 
         result
+    }
+
+    async fn fetch_relations_of_type<S: Entity, T: Entity>(&self, source: Arc<S>, name: &String) -> Result<Vec<Relation<S, T>>, DbActionError> {
+        unimplemented!();
+    }
+
+    async fn fetch_single_relation<S: Entity, T: Entity>(&self, source: Arc<S>, target: Arc<T>, name: &String) -> Result<Relation<S, T>, DbActionError> {
+        unimplemented!();
+    }
+
+    async fn delete_relation<S: Entity, T: Entity>(&self, source: Arc<S>, target: Arc<T>, name: &String) -> Result<(), DbActionError> {
+        unimplemented!();
     }
 }

@@ -96,8 +96,9 @@ impl Hash for User {
 
 impl Entity for User {
     type I = u32;
-    fn get_id(&self) -> Option<&u32>{
-        self.id.and_then(|i| Some(&i))
+
+    fn get_id(&self) -> &Option<u32>{
+        &self.id
     }
 
     fn get_node_type_name() -> &'static str {
@@ -167,8 +168,8 @@ impl Team {
 impl Entity for Team {
     type I = u32;
 
-    fn get_id(&self) -> Option<&u32>{
-        self.id.and_then(|i| Some(&i))
+    fn get_id(&self) -> &Option<u32>{
+        &self.id
     }
 
     fn get_node_type_name() -> &'static str {

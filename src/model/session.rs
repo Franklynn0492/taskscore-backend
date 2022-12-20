@@ -58,8 +58,8 @@ impl Session {
 impl Entity for Session {
     type I = u32;
 
-    fn get_id(&self) -> Option<&u32>{
-        self.id.and_then(|i| Some(&i))
+    fn get_id(&self) -> &Option<u32>{
+        &self.id
     }
 
     fn get_node_type_name() -> &'static str {

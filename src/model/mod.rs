@@ -16,7 +16,7 @@ mod util;
 pub trait Entity: From<Node> + Send + Sync + 'static + Display + Debug {
     type I: Id;
 
-    fn get_id(&self) -> Option<&Self::I>;
+    fn get_id(&self) -> &Option<Self::I>;
 
     fn get_node_type_name() -> &'static str;
     
@@ -24,7 +24,7 @@ pub trait Entity: From<Node> + Send + Sync + 'static + Display + Debug {
         let id_str = if self.get_id().is_none() {
             "none".to_string()
         } else {
-            self.get_id().unwrap().to_string()
+            self.get_id().as_ref().unwrap().to_string()
         };
 
         write!(f, "[{}; id: {})]", Self::get_node_type_name(), id_str)
@@ -55,26 +55,26 @@ impl <S: Entity, T: Entity> Relation<S, T> {
 
     pub fn get_create_statement(&self) -> String {
         let statement = format!("MATCH (s:{}), (t:{}) WHERE id(s) = {} AND id(t) = {} CREATE (s)-[r:{} {}]->(t) RETURN r",
-        S::get_node_type_name(), T::get_node_type_name(), self.source_node.get_id().unwrap(), self.target_node.get_id().unwrap(), self.name, self.params_to_str());
+        S::get_node_type_name(), T::get_node_type_name(), self.source_node.get_id().as_ref().unwrap(), self.target_node.get_id().as_ref().unwrap(), self.name, self.params_to_str());
         statement
     }
 
     pub fn get_match_statement(&self) -> String {
         let statement = format!("MATCH (s:{}) -[r:{}]- (t:{}) WHERE id(s) = {} AND id(t) = {} RETURN r",
-        S::get_node_type_name(), self.name, T::get_node_type_name(), self.source_node.get_id().unwrap(), self.target_node.get_id().unwrap());
+        S::get_node_type_name(), self.name, T::get_node_type_name(), self.source_node.get_id().as_ref().unwrap(), self.target_node.get_id().as_ref().unwrap());
         statement
     }
 
     pub fn get_delete_statement(&self) -> String {
         let statement = format!("MATCH (s:{}) -[r:{}]- (t:{}) WHERE id(s) = {} AND id(t) = {} DELETE r",
-        S::get_node_type_name(), self.name, T::get_node_type_name(), self.source_node.get_id().unwrap(), self.target_node.get_id().unwrap());
+        S::get_node_type_name(), self.name, T::get_node_type_name(), self.source_node.get_id().as_ref().unwrap(), self.target_node.get_id().as_ref().unwrap());
         statement
     }
 
     fn params_to_str(&self) -> String  {
         let param_str = 
         if self.params_opt.is_some() {
-            let params = self.params_opt.unwrap();
+            let params = (&self.params_opt).as_ref().unwrap();
             serde_json::to_string(&params).unwrap()
         } else {
             String::new()
