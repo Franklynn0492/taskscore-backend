@@ -2,7 +2,7 @@ use std::{env, collections::HashMap, sync::Arc};
 use dotenv::dotenv;
 use rocket::{tokio::{net::TcpStream, io::BufStream}, futures::lock::Mutex};
 
-use bolt_client::{Client, bolt_proto::{version::{V4_3, V4_2}, Message, message::{Success, Record}, value::Node}, Metadata, Params};
+use bolt_client::{Client, bolt_proto::{version::{V4_3, V4_2}, Message, message::{Success, Record}, value::{Node, Relationship}}, Metadata, Params};
 use tokio_util::compat::*;
 
 #[cfg(test)]
@@ -118,6 +118,37 @@ impl Neo4JClient {
         entities
     }
 
+    async fn pull_relations<S: Entity, T: Entity>(&self, client: &mut Client<Compat<BufStream<TcpStream>>>, metadata: Option<Metadata>, source_node: Arc<S>, target_node: Arc<T>) -> Result<Vec<Relation<S, T>>, DbActionError> {
+        let records_result = self.pull_records(client, metadata).await;
+        if (records_result.is_err()) {
+            return Err(records_result.unwrap_err());
+        }
+
+        let records = records_result.unwrap();
+
+        if records.len() == 0 {
+            return Ok(vec![]);
+        }
+
+        let entities = records.into_iter().map(|record| {
+            let relationship_result = Relationship::try_from(record.fields()[0].clone());
+
+            if (relationship_result.is_ok()) {
+                let relationship = relationship_result.unwrap();
+                let relation_res = Relation::new(source_node.clone(), target_node.clone(), relationship.rel_type().to_string(), None);
+                match relation_res {
+                    Ok(r) => Ok(r),
+                    Err(e) => Err(e)
+                }
+            } else {
+                Err("Unable to create relation from record".to_owned())
+            }
+            
+        }).collect::<Result<Vec<Relation<S, T>>,_>>();
+
+        entities
+    }
+
     async fn run(&self, statement: String, params_opt: Option<Params>) -> Result<(), DbActionError> {
         let mut client = self.client.lock().await;
 
@@ -150,6 +181,23 @@ impl Neo4JClient {
 
         //Neo4JRepository::discard(&mut client).await;
 
+        result
+    }
+
+    async fn perform_action_returning_one_relation<S: Entity, T: Entity>(&self, action_name: &str, statement: String, params_opt: Option<Params>, source_node: Arc<S>, target_node: Arc<T>) -> Result<Relation<S, T>, DbActionError> {
+        let run_result = self.run(statement, params_opt).await;
+        
+        if run_result.is_err() {
+            return Err(run_result.unwrap_err());
+        }
+
+        let mut client = self.client.lock().await;
+        let metadata = Some(Metadata::from_iter(vec![("n", 1)]));
+
+        let pull_result = self.pull_relations::<S, T>(&mut client, metadata, source_node, target_node).await;
+        
+        let result = pull_result.and_then(|mut entity_vec| entity_vec.pop().ok_or(format!("{} did not return relation", action_name)));
+        
         result
     }
 }
@@ -201,22 +249,6 @@ impl DbClient for Neo4JClient {
 
     }
 
-    async fn create_relationship<S: Entity, T: Entity> (&self, source: Arc<S>, target: Arc<T>, name: &String, params_opt: Option<HashMap<&'static str, String>>) -> Result<Relation<S, T>, DbActionError> {
-
-        let relation_res = Relation::new(source, target, name, params_opt);
-        if relation_res.is_err() {
-            return Err(relation_res.unwrap_err());
-        }
-
-        let relation = relation_res.unwrap();
-        let statement = relation.get_create_statement();
-
-        // Todo: This. We nmeed a function to read results into relations
-        let result = self.perform_action_returning_one_entity("Create relationship", statement, None).await;
-
-        result
-    }
-
     async fn update<E: Entity> (&self, statement: String, params: Params) -> Result<E, DbActionError> {
         
         let result = self.perform_action_returning_one_entity("Update", statement, Some(params)).await;
@@ -239,5 +271,20 @@ impl DbClient for Neo4JClient {
         }
 
         Ok(())
+    }
+
+    async fn create_relationship<S: Entity, T: Entity> (&self, source: Arc<S>, target: Arc<T>, name: &String, params_opt: Option<HashMap<&'static str, String>>) -> Result<Relation<S, T>, DbActionError> {
+
+        let relation_res = Relation::new(source.clone(), target.clone(), name.clone(), params_opt);
+        if relation_res.is_err() {
+            return Err(relation_res.unwrap_err());
+        }
+
+        let relation = relation_res.unwrap();
+        let statement = relation.get_create_statement();
+
+        let result = self.perform_action_returning_one_relation("Create relation", statement, None, source, target).await;
+
+        result
     }
 }

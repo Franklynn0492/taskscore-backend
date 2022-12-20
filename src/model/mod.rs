@@ -40,12 +40,12 @@ impl Id for u32 {
 pub struct Relation<S: Entity, T: Entity> {
     source_node: Arc<S>,
     target_node: Arc<T>,
-    name: &'static str,
+    name: String,
     params_opt: Option<HashMap<&'static str, String>>,
 }
 
 impl <S: Entity, T: Entity> Relation<S, T> {
-    pub fn new(source_node: Arc<S>, target_node: Arc<T>, name: &'static str, params_opt: Option<HashMap<&'static str, String>>) -> Result<Relation<S, T>, String> {
+    pub fn new(source_node: Arc<S>, target_node: Arc<T>, name: String, params_opt: Option<HashMap<&'static str, String>>) -> Result<Relation<S, T>, String> {
         if source_node.get_id().is_none() || target_node.get_id().is_none() {
             Err(format!("Both nodes need to have an Id when creating a relation; source_node.id: {}; target_node.id: {}", source_node, target_node))
         } else {
