@@ -11,7 +11,7 @@ use super::http::responder::KeyValueListResponder;
 #[openapi(tag = "Config")]
 #[get("/config")]
 pub fn get_config<'a>(session: Session) -> KeyValueListResponder<String, String> {
-    if !session.user.lock().unwrap().is_admin {
+    if !session.user.is_admin {
         return KeyValueListResponder::create(Status::Forbidden, vec![]);
     }
 

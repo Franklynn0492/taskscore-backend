@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rocket::serde::json::Json;
 use rocket::State;
 use rocket_okapi::openapi;
@@ -20,8 +22,8 @@ pub async fn get_user_by_username<'a>(username: String, repository: &State<Appli
 
 #[openapi(tag = "User")]
 #[get("/user")]
-pub async fn get_current_user<'a>(session: Session) -> Json<User> {
-    Json(session.user.lock().unwrap().clone())
+pub async fn get_current_user<'a>(session: Session) -> Json<Arc<User>> {
+    Json(session.user)
 }
 
 #[openapi(tag = "User")]

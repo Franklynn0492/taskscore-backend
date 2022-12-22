@@ -2,7 +2,7 @@ use std::{sync::Arc};
 
 use bolt_client::{Params};
 
-use crate::{model::{Session, Entity}};
+use crate::{model::{Session, Entity, User}};
 
 use super::{client::{Neo4JClient, DbClient, self}, repository::{ReadRepository, DbActionError, ModifyRepository, WriteRepository, ReadAllRepository}};
 
@@ -48,10 +48,15 @@ impl  WriteRepository<Session> for SessionRepository {
         let params = Params::from_iter(vec![("session_id", new_entity.session_id.clone()),
             ("started", new_entity.started.to_string()), ("refreshed", new_entity.refreshed.to_string())]);
         
-        let result = self.client.create::<Session>(statement, params).await;
+        let client = self.client.clone();
+        let result = client.create::<Session>(statement, params).await;
 
         if (result.is_ok()) {
             let session = result.unwrap();
+            let user = new_entity.user;
+            client.create_relationship(Arc::new(session), user, &String::from("OWNED_BY"), None);
+
+
             // ... i think I need a "Relationship"-Subtype of entity
             //let 
         }

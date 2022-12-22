@@ -20,13 +20,13 @@ const PASSWORD_LEN: usize = 30;
 pub struct Session {
     pub id: Option<u32>,
     pub session_id: String,
-    pub user: Arc<Mutex<User>>,
+    pub user: Arc<User>,
     pub started: DateTime::<Utc>,
     pub refreshed: DateTime::<Utc>,
 }
 
 impl Session {
-    pub fn new(id: Option<u32>, user: Arc<Mutex<User>>) -> Session {
+    pub fn new(id: Option<u32>, user: Arc<User>) -> Session {
         let now = Utc::now();
         Session {
             id,
@@ -81,7 +81,7 @@ impl From<Node> for Session {
         let started = get_utc(properties, "started", Utc::now());
         let refreshed = get_utc(properties, "refreshed", Utc::now());
         // Todo: Relationship to user
-        Session{id, session_id, user: Arc::new(Mutex::new(User {id: None, display_name: "Guy Incognito".to_owned(), is_admin: true, points: 9, pwd_hash_components: None, scores: vec![], username: "guyincognito".to_owned()})), started, refreshed}
+        Session{id, session_id, user: Arc::new(User::get_default_user()), started, refreshed}
     }
 }
 

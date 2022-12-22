@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use futures::executor::block_on;
 use rocket::response::status::NotFound;
 use rocket::serde::json::Json;
@@ -9,9 +11,8 @@ use crate::model::{Score, Session};
 #[openapi(tag = "Score")]
 #[post("/score/<task_id>")]
 pub async fn score<'a>(session: Session, task_id: u32, repository: &State<ApplicationLogic>) -> Result<Json<u16>, NotFound<String>> {
-    let user_mutex_guard = session.user.lock().unwrap();
-    let user_id = user_mutex_guard.id.unwrap();
-    std::mem::drop(user_mutex_guard);
+    let user = session.user;
+    let user_id = user.id.unwrap();
 
     match block_on(repository.score(user_id, task_id)) {
         Ok(new_score) => Ok(Json(new_score)),
@@ -21,12 +22,12 @@ pub async fn score<'a>(session: Session, task_id: u32, repository: &State<Applic
 
 #[openapi(tag = "Score")]
 #[get("/score/<user_id>")]
-pub async fn get_score_of_user<'a>(user_id: u32, repository: &State<ApplicationLogic>) -> Option<Json<Vec<Score>>> {
+pub async fn get_score_of_user<'a>(user_id: u32, repository: &State<ApplicationLogic>) -> Option<Json<Vec<Arc<Score>>>> {
     repository.get_user(user_id).await.and_then(|user| Some(Json(user.scores)))
 }
 
 #[openapi(tag = "Score")]
 #[get("/score")]
-pub async fn get_score_of_current_user<'a>(session: Session) -> Json<Vec<Score>> {
-    Json(session.user.lock().unwrap().clone().scores)
+pub async fn get_score_of_current_user<'a>(session: Session) -> Json<Vec<Arc<Score>>> {
+    Json(session.user.scores.iter().map(|s| s.clone()).collect())
 }
