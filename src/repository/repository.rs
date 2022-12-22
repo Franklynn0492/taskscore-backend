@@ -1,4 +1,6 @@
 
+use std::sync::Arc;
+
 #[cfg(test)] // Include the following only if you reun tests
 use mockall::automock;
 
@@ -21,7 +23,7 @@ pub trait ReadAllRepository<E: Entity> {
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait WriteRepository<E: Entity> {
-    async fn add(&self, new_entity: &E) -> Result<E, DbActionError>;
+    async fn add(&self, new_entity: &E) -> Result<Arc<E>, DbActionError>;
 
     async fn delete(&self, entity_with_update_values: &E) -> Result<(), DbActionError>;
 }

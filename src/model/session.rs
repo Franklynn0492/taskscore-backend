@@ -139,7 +139,7 @@ impl<'a> FromRequest<'a> for LoginRequest {
                     return Outcome::Failure((Status::BadRequest, "Empty basic authentication header provided".to_owned()));
                 }
 
-                let decoded_res = base64::decode_config(login_data_encoded, base64::URL_SAFE);
+                let decoded_res = base64::decode_engine(login_data_encoded, &base64::engine::DEFAULT_ENGINE);
                 if decoded_res.is_err() {
                     return Outcome::Failure((Status::BadRequest, "Unable to decode basic authentication header".to_owned()));
                 }

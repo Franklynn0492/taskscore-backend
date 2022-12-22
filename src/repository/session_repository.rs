@@ -43,7 +43,7 @@ impl  ModifyRepository<Session> for SessionRepository {
 
 #[async_trait]
 impl  WriteRepository<Session> for SessionRepository {
-    async fn add(&self, new_entity: &Session) -> Result<Session, DbActionError> {
+    async fn add(&self, new_entity: &Session) -> Result<Arc<Session>, DbActionError> {
         let statement = format!("CREATE (u:{} {{session_id: $session_id, started: $started, refreshed: &refreshed }}) RETURN u", Session::get_node_type_name());
         let params = Params::from_iter(vec![("session_id", new_entity.session_id.clone()),
             ("started", new_entity.started.to_string()), ("refreshed", new_entity.refreshed.to_string())]);
@@ -52,16 +52,14 @@ impl  WriteRepository<Session> for SessionRepository {
         let result = client.create::<Session>(statement, params).await;
 
         if (result.is_ok()) {
-            let session = result.unwrap();
-            let user = new_entity.user;
-            client.create_relationship(Arc::new(session), user, &String::from("OWNED_BY"), None);
+            let session = Arc::new(result.unwrap());
+            let user = new_entity.user.clone();
+            client.create_relationship(session.clone(), user, &String::from("OWNED_BY"), None);
 
-
-            // ... i think I need a "Relationship"-Subtype of entity
-            //let 
+            return Ok(session);
         }
 
-        result
+        Err(result.unwrap_err())
     }
 
     async fn delete(&self, entity_to_delete: &Session) -> Result<(), DbActionError> {

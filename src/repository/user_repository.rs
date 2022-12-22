@@ -53,14 +53,14 @@ impl  ModifyRepository<User> for UserRepository {
 
 #[async_trait]
 impl  WriteRepository<User> for UserRepository {
-    async fn add(&self, new_entity: &User) -> Result<User, DbActionError> {
+    async fn add(&self, new_entity: &User) -> Result<Arc<User>, DbActionError> {
         let statement = format!("CREATE (u:{} {{username: '$username', display_name: '$display_name', password: '$password', is_admin: &is_admin }}) RETURN u", User::get_node_type_name());
         let params = Params::from_iter(vec![("username", new_entity.username.clone()), ("display_name", new_entity.display_name.clone()),
             ("password", new_entity.pwd_hash_components.clone().unwrap_or("".to_owned())), ("is_admin", new_entity.is_admin.to_string())]);
         
         let result = self.client.create::<User>(statement, params).await;
 
-        result
+        result.map(|u| Arc::new(u))
     }
 
     async fn delete(&self, entity_to_delete: &User) -> Result<(), DbActionError> {

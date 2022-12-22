@@ -1,6 +1,6 @@
 use std::{fmt::{Display, Debug, self}, sync::Arc, collections::HashMap};
 
-use bolt_client::bolt_proto::value::{Node, Relationship};
+use bolt_client::bolt_proto::{value::{Node, Relationship}, Value};
 pub use user::User;
 pub use task::{Task, Score};
 pub use session::Session;
@@ -41,11 +41,11 @@ pub struct Relation<S: Entity, T: Entity> {
     source_node: Arc<S>,
     target_node: Arc<T>,
     name: String,
-    params_opt: Option<HashMap<&'static str, String>>,
+    params_opt: Option<HashMap<String, Value>>,
 }
 
 impl <S: Entity, T: Entity> Relation<S, T> {
-    pub fn new(source_node: Arc<S>, target_node: Arc<T>, name: String, params_opt: Option<HashMap<&'static str, String>>) -> Result<Relation<S, T>, String> {
+    pub fn new(source_node: Arc<S>, target_node: Arc<T>, name: String, params_opt: Option<HashMap<String, Value>>) -> Result<Relation<S, T>, String> {
         if source_node.get_id().is_none() || target_node.get_id().is_none() {
             Err(format!("Both nodes need to have an Id when creating a relation; source_node.id: {}; target_node.id: {}", source_node, target_node))
         } else {
@@ -72,15 +72,43 @@ impl <S: Entity, T: Entity> Relation<S, T> {
     }
 
     fn params_to_str(&self) -> String  {
-        let param_str = 
-        if self.params_opt.is_some() {
-            let params = (&self.params_opt).as_ref().unwrap();
-            serde_json::to_string(&params).unwrap()
-        } else {
-            String::new()
-        };
+        if self.params_opt.is_none() {
+            return String::new();
+        }
+
+        // Unfortunately I have to clone here. Unwrapping takes ownership (and we cannot own self.params_opt here), and .as_deref() does
+        // not work since Value is not Deref-erable
+        let param_str = self.params_opt.clone().unwrap().iter()
+            .map(|(k, v)| Self::try_param_pair_to_str(k, v))
+            .filter(|r| r.is_ok())
+            .map(|r| r.unwrap())
+            .collect::<Vec<String>>()
+            .join(", ");
         
         param_str
+    }
+
+    fn try_param_pair_to_str(key: &String, value: &Value) -> Result<String, ()> {
+        let value_str_opt = match value {
+            Value::Boolean(v) => Some(v.to_string()),
+            Value::Date(v) => Some(v.to_string()),
+            Value::DateTimeOffset(v) => Some(v.to_string()),
+            Value::DateTimeZoned(v) => Some(v.to_string()),
+            Value::Float(v) => Some(v.to_string()),
+            Value::Integer(v) => Some(v.to_string()),
+            Value::LocalDateTime(v) => Some(v.to_string()),
+            Value::LocalTime(v) => Some(v.to_string()),
+            Value::Null => Some("null".to_string()),
+            Value::String(v) => Some(v.clone()),
+            _ => None
+        };
+
+        if value_str_opt.is_none() {
+            Err(())
+        } else {
+            let result = format!("{}: {}", key, value_str_opt.unwrap());
+            Ok(result)
+        }
     }
 
 
@@ -88,14 +116,22 @@ impl <S: Entity, T: Entity> Relation<S, T> {
         let src_id = value.start_node_identity();
         let target_id = value.end_node_identity().try_into().unwrap();
         let properties = value.properties();
+        let name = value.rel_type();
 
         let source_res = Self::resolve_by_id(source_repository, &src_id).await;
         let target_res = Self::resolve_by_id(target_repository, &target_id).await;
 
+        if source_res.is_err() || target_res.is_err() {
+            return Err(format!("Could not load realtion of type {}; Source is present: {}; target is present: {}; src_id: {}, target_id: {}", name, source_res.is_ok(), target_res.is_ok(), src_id, target_id));
+        }
 
+        let params_opt = if properties.len() == 0 { None } else {
+            Some(properties.clone())
+        };
 
+        let relation = Relation::new(Arc::new(source_res.unwrap()), Arc::new(target_res.unwrap()), String::from(name), params_opt);
 
-        !unimplemented!()
+        relation
     }
 
     async fn resolve_by_id<E: Entity>(repository: &dyn ReadRepository<E>, id: &i64) -> Result<E, String> {

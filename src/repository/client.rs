@@ -2,7 +2,7 @@ use std::{env, collections::HashMap, sync::Arc};
 use dotenv::dotenv;
 use rocket::{tokio::{net::TcpStream, io::BufStream}, futures::lock::Mutex};
 
-use bolt_client::{Client, bolt_proto::{version::{V4_3, V4_2}, Message, message::{Success, Record}, value::{Node, Relationship}}, Metadata, Params};
+use bolt_client::{Client, bolt_proto::{version::{V4_3, V4_2}, Message, message::{Success, Record}, value::{Node, Relationship}, Value}, Metadata, Params};
 use tokio_util::compat::*;
 
 #[cfg(test)]
@@ -24,7 +24,7 @@ pub trait DbClient {
     async fn create<E: Entity> (&self, statement: String, params: Params) -> Result<E, DbActionError>;
     async fn update<E: Entity> (&self, statement: String, params: Params) -> Result<E, DbActionError>;
     async fn delete<E: Entity> (&self, entity: &E) -> Result<(), DbActionError>;
-    async fn create_relationship<S: Entity, T: Entity> (&self, source: Arc<S>, target: Arc<T>, name: &String, params_opt: Option<HashMap<&'static str, String>>) -> Result<Relation<S, T>, DbActionError>;
+    async fn create_relationship<S: Entity, T: Entity> (&self, source: Arc<S>, target: Arc<T>, name: &String, params_opt: Option<HashMap<String, Value>>) -> Result<Relation<S, T>, DbActionError>;
     async fn fetch_relations_of_type<S: Entity, T: Entity>(&self, source: Arc<S>, name: &String) -> Result<Vec<Relation<S, T>>, DbActionError>;
     async fn fetch_single_relation<S: Entity, T: Entity>(&self, source: Arc<S>, target: Arc<T>, name: &String) -> Result<Relation<S, T>, DbActionError>;
     async fn delete_relation<S: Entity, T: Entity>(&self, source: Arc<S>, target: Arc<T>, name: &String) -> Result<(), DbActionError>;
@@ -276,7 +276,7 @@ impl DbClient for Neo4JClient {
         Ok(())
     }
 
-    async fn create_relationship<S: Entity, T: Entity> (&self, source: Arc<S>, target: Arc<T>, name: &String, params_opt: Option<HashMap<&'static str, String>>) -> Result<Relation<S, T>, DbActionError> {
+    async fn create_relationship<S: Entity, T: Entity> (&self, source: Arc<S>, target: Arc<T>, name: &String, params_opt: Option<HashMap<String, Value>>) -> Result<Relation<S, T>, DbActionError> {
 
         let relation_res = Relation::new(source.clone(), target.clone(), name.clone(), params_opt);
         if relation_res.is_err() {
