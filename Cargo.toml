@@ -21,7 +21,7 @@ dotenv = "0.15.0"       # Environment configuration handling
 bolt-client = "0.10.1"  # Neo4J connection
 tokio-util = {version = "0.7.0", features = ["compat"]}  # Utility features fort tokio async
 futures = "0.3.25"
-base64 = "0.13.1"
+base64 = "0.20.0"
 
 # Rocket-Dependencies
 rocket-basicauth = "2.1.1"
