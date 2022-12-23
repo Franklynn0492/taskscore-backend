@@ -124,7 +124,21 @@ impl Logic for ApplicationLogic {
     }
     
     async fn logout(&self, session_id: &String) -> Result<(), String> {
-        !unimplemented!();
+        let session_opt_res = self.session_repo.find_session_by_session_id(session_id).await;
+
+        if session_opt_res.is_err() {
+            return Err(session_opt_res.unwrap_err());
+        }
+
+        let session_opt = session_opt_res.unwrap();
+        if session_opt.is_none() {
+            return Ok(());
+        }
+
+        let session = session_opt.unwrap();
+        let logout_result = self.session_repo.delete(&session).await;
+
+        logout_result
     }
     
 }
