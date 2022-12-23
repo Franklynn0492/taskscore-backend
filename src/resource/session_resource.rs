@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rocket::http::{Cookie, CookieJar};
 use rocket::response::status::NotFound;
 use rocket::serde::json::Json;
@@ -9,7 +11,7 @@ use crate::model::{Session};
 
 #[openapi(tag = "Session")]
 #[post("/session/login")]
-pub async fn login<'a>(login_request: LoginRequest, repository: &State<ApplicationLogic>, jar: &CookieJar<'_>) -> Result<Json<Session>, NotFound<String>> {
+pub async fn login<'a>(login_request: LoginRequest, repository: &State<ApplicationLogic>, jar: &CookieJar<'_>) -> Result<Json<Arc<Session>>, NotFound<String>> {
     let session_result = repository.login(login_request).await;
     match session_result {
         Ok(session) => {

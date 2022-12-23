@@ -122,7 +122,7 @@ impl <S: Entity, T: Entity> Relation<S, T> {
         let target_res = Self::resolve_by_id(target_repository, &target_id).await;
 
         if source_res.is_err() || target_res.is_err() {
-            return Err(format!("Could not load realtion of type {}; Source is present: {}; target is present: {}; src_id: {}, target_id: {}", name, source_res.is_ok(), target_res.is_ok(), src_id, target_id));
+            return Err(format!("Could not load relation of type {}; Source is present: {}; target is present: {}; src_id: {}, target_id: {}", name, source_res.is_ok(), target_res.is_ok(), src_id, target_id));
         }
 
         let params_opt = if properties.len() == 0 { None } else {

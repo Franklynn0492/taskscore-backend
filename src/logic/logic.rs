@@ -1,5 +1,5 @@
 use std::{sync::{Arc, Mutex}};
-use crate::repository::client::{Neo4JClient};
+use crate::repository::{client::{Neo4JClient}, user_repository, session_repository::SessionRepository};
 use crate::repository::repository::*;
 
 #[cfg(test)]
@@ -22,7 +22,7 @@ pub trait Logic {
     async fn add_team(&self, team: Team) -> Option<u32>;
     async fn add_user_to_team(&self, team_name: &String, user_id: u32, manager: User) -> Result<(), String>;
     async fn add_user(&self, session: &Session, user: User) -> MessageResponder<u32>;
-    async fn login(&self, login_request: LoginRequest) -> Result<Session, String>;
+    async fn login(&self, login_request: LoginRequest) -> Result<Arc<Session>, String>;
     async fn logout(&self, session_id: &String) -> Result<(), String>;
 }
 
@@ -30,6 +30,7 @@ pub trait Logic {
 pub struct ApplicationLogic {
     db_client: Arc<Neo4JClient>,
     user_repo: UserRepository,
+    session_repo: SessionRepository,
 }
 pub type ApplicationLogicError = String;
 
@@ -38,8 +39,9 @@ impl ApplicationLogic {
         let db_client = Arc::new(Neo4JClient::connect().await?);
 
         let user_repo = UserRepository::new(db_client.clone());
+        let session_repo = SessionRepository::new(db_client.clone());
 
-        Ok(ApplicationLogic { db_client, user_repo })
+        Ok(ApplicationLogic { db_client, user_repo, session_repo })
     }
     
 }
@@ -95,8 +97,30 @@ impl Logic for ApplicationLogic {
         !unimplemented!();
     }
     
-    async fn login(&self, login_request: LoginRequest) -> Result<Session, String> {
-        !unimplemented!();
+    async fn login(&self, login_request: LoginRequest) -> Result<Arc<Session>, String> {
+        let username = login_request.username;
+        let password = login_request.password;
+
+        let user_opt_res = self.user_repo.find_user_by_username(&username).await;
+
+        if user_opt_res.is_err() {
+            return Err(user_opt_res.unwrap_err());
+        }
+
+        let user_opt = user_opt_res.unwrap();
+        if user_opt.is_none() {
+            return Err(String::from("User is unknown"))
+        }
+
+        let user = user_opt.unwrap();
+        if !user.verify_password(&password) {
+            return Err(String::from("Wrong password"))
+        }
+
+        let new_session = Session::new(None, Arc::new(user));
+        let session_res = self.session_repo.add(&new_session).await;
+
+        session_res
     }
     
     async fn logout(&self, session_id: &String) -> Result<(), String> {
