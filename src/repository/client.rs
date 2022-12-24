@@ -81,6 +81,36 @@ impl Neo4JClient {
         }
     }
 
+    async fn begin(client: &mut Client<Compat<BufStream<TcpStream>>>) -> Result<(), DbActionError> {
+        let commit_result = client.begin(None).await;
+
+        if commit_result.is_err() {
+            let err_msg = commit_result.unwrap_err();
+            println!("{}", err_msg);
+            Err(format!("Unable to begin transaction: {}", err_msg))
+        } else {
+            Ok(())
+        }
+    }
+
+    async fn commit(client: &mut Client<Compat<BufStream<TcpStream>>>) {
+        let commit_result = client.commit().await;
+
+        if commit_result.is_err() {
+            let err_msg = commit_result.unwrap_err();
+            println!("{}", err_msg);
+        }
+    }
+
+    async fn rollback(client: &mut Client<Compat<BufStream<TcpStream>>>) {
+        let rollback_result = client.rollback().await;
+
+        if rollback_result.is_err() {
+            let err_msg = rollback_result.unwrap_err();
+            println!("{}", err_msg);
+        }
+    }
+
     async fn pull_records(&self, client: &mut Client<Compat<BufStream<TcpStream>>>, metadata: Option<Metadata>) -> Result<Vec<Record>, DbActionError> {
         let pull_result = client.pull(metadata).await;
         if pull_result.is_err() {
@@ -97,7 +127,7 @@ impl Neo4JClient {
 
     async fn pull_entities<E: Entity>(&self, client: &mut Client<Compat<BufStream<TcpStream>>>, metadata: Option<Metadata>) -> Result<Vec<E>, DbActionError> {
         let records_result = self.pull_records(client, metadata).await;
-        if (records_result.is_err()) {
+        if records_result.is_err() {
             return Err(records_result.unwrap_err());
         }
 
@@ -110,7 +140,7 @@ impl Neo4JClient {
         let entities = records.into_iter().map(|record| {
             let node_result = Node::try_from(record.fields()[0].clone());
 
-            if (node_result.is_ok()) {
+            if node_result.is_ok() {
                 Ok(E::from(node_result.unwrap()))
             } else {
                 Err("Unable to create node from record".to_owned())
@@ -123,7 +153,7 @@ impl Neo4JClient {
 
     async fn pull_relations<S: Entity, T: Entity>(&self, client: &mut Client<Compat<BufStream<TcpStream>>>, metadata: Option<Metadata>, source_node: Arc<S>, target_node: Arc<T>) -> Result<Vec<Relation<S, T>>, DbActionError> {
         let records_result = self.pull_records(client, metadata).await;
-        if (records_result.is_err()) {
+        if records_result.is_err() {
             return Err(records_result.unwrap_err());
         }
 
@@ -136,7 +166,7 @@ impl Neo4JClient {
         let entities = records.into_iter().map(|record| {
             let relationship_result = Relationship::try_from(record.fields()[0].clone());
 
-            if (relationship_result.is_ok()) {
+            if relationship_result.is_ok() {
                 let relationship = relationship_result.unwrap();
                 let relation_res = Relation::new(source_node.clone(), target_node.clone(), relationship.rel_type().to_string(), None);
                 match relation_res {
@@ -152,8 +182,15 @@ impl Neo4JClient {
         entities
     }
 
-    async fn run(&self, statement: String, params_opt: Option<Params>) -> Result<(), DbActionError> {
+    async fn run(&self, statement: String, params_opt: Option<Params>, is_write_action: bool) -> Result<(), DbActionError> {
         let mut client = self.client.lock().await;
+
+        if is_write_action {
+            let begin_result = Neo4JClient::begin(&mut client).await;
+            if begin_result.is_err() {
+                return Err(begin_result.unwrap_err());
+            }
+        }
 
         let run_result = client.run(statement, params_opt, None).await;
         
@@ -161,14 +198,20 @@ impl Neo4JClient {
             let com_err = run_result.unwrap_err();
             let err_msg = format!("{}", com_err);
             println!("{}", err_msg);
+
+            if is_write_action {
+                Neo4JClient::rollback(&mut client).await;
+            }
+            
             Err(err_msg)
         } else {
+
             Ok(())
         }
     }
 
-    async fn perform_action_returning_one_entity<E: Entity>(&self, action_name: &str, statement: String, params_opt: Option<Params>) -> Result<E, DbActionError> {
-        let run_result = self.run(statement, params_opt).await;
+    async fn perform_action_returning_one_entity<E: Entity>(&self, action_name: &str, statement: String, params_opt: Option<Params>, is_write_action: bool) -> Result<E, DbActionError> {
+        let run_result = self.run(statement, params_opt, is_write_action).await;
         
         if run_result.is_err() {
             return Err(run_result.unwrap_err());
@@ -182,13 +225,15 @@ impl Neo4JClient {
         
         let result = pull_result.and_then(|mut entity_vec| entity_vec.pop().ok_or(format!("{} did not return entity", action_name)));
 
-        //Neo4JRepository::discard(&mut client).await;
+        if is_write_action {
+            Neo4JClient::commit(&mut client).await;
+        }
 
         result
     }
 
-    async fn perform_action_returning_one_relation<S: Entity, T: Entity>(&self, action_name: &str, statement: String, params_opt: Option<Params>, source_node: Arc<S>, target_node: Arc<T>) -> Result<Relation<S, T>, DbActionError> {
-        let run_result = self.run(statement, params_opt).await;
+    async fn perform_action_returning_one_relation<S: Entity, T: Entity>(&self, action_name: &str, statement: String, params_opt: Option<Params>, source_node: Arc<S>, target_node: Arc<T>, is_write_action: bool) -> Result<Relation<S, T>, DbActionError> {
+        let run_result = self.run(statement, params_opt, is_write_action).await;
         
         if run_result.is_err() {
             return Err(run_result.unwrap_err());
@@ -200,6 +245,10 @@ impl Neo4JClient {
         let pull_result = self.pull_relations::<S, T>(&mut client, metadata, source_node, target_node).await;
         
         let result = pull_result.and_then(|mut entity_vec| entity_vec.pop().ok_or(format!("{} did not return relation", action_name)));
+
+        if is_write_action {
+            Neo4JClient::commit(&mut client).await;
+        }
         
         result
     }
@@ -223,7 +272,7 @@ impl DbClient for Neo4JClient {
     }
 
     async fn fetch<E: Entity> (&self, statement: String, params: Params) -> Result<Vec<E>, DbActionError> {
-        let run_result = self.run(statement, Some(params)).await;
+        let run_result = self.run(statement, Some(params), false).await;
         
         if run_result.is_err() {
             return Err(run_result.unwrap_err());
@@ -246,7 +295,7 @@ impl DbClient for Neo4JClient {
 
     async fn create<E: Entity> (&self, statement: String, params: Params) -> Result<E, DbActionError> {
         
-        let result = self.perform_action_returning_one_entity("Create", statement, Some(params)).await;
+        let result = self.perform_action_returning_one_entity("Create", statement, Some(params), true).await;
 
         result
 
@@ -254,7 +303,7 @@ impl DbClient for Neo4JClient {
 
     async fn update<E: Entity> (&self, statement: String, params: Params) -> Result<E, DbActionError> {
         
-        let result = self.perform_action_returning_one_entity("Update", statement, Some(params)).await;
+        let result = self.perform_action_returning_one_entity("Update", statement, Some(params), true).await;
 
         result
     }
@@ -267,11 +316,15 @@ impl DbClient for Neo4JClient {
         let statement = format!("MATCH (p:{}) WHERE id(p) = $id DETACH DELETE p", E::get_node_type_name());
         let params = Params::from_iter(vec![("id", entity.get_id().as_ref().unwrap().to_string())]);
 
-        let run_result = self.run(statement, Some(params)).await;
+        let run_result = self.run(statement, Some(params), true).await;
         
         if run_result.is_err() {
             return Err(run_result.unwrap_err());
         }
+
+
+        let mut client = self.client.lock().await;
+        Neo4JClient::commit(&mut client).await;
 
         Ok(())
     }
@@ -286,7 +339,7 @@ impl DbClient for Neo4JClient {
         let relation = relation_res.unwrap();
         let statement = relation.get_create_statement();
 
-        let result = self.perform_action_returning_one_relation("Create relation", statement, None, source, target).await;
+        let result = self.perform_action_returning_one_relation("Create relation", statement, None, source, target, true).await;
 
         result
     }

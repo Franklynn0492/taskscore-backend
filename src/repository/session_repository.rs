@@ -44,7 +44,7 @@ impl  ModifyRepository<Session> for SessionRepository {
 #[async_trait]
 impl  WriteRepository<Session> for SessionRepository {
     async fn add(&self, new_entity: &Session) -> Result<Arc<Session>, DbActionError> {
-        let statement = format!("CREATE (u:{} {{session_id: $session_id, started: $started, refreshed: &refreshed }}) RETURN u", Session::get_node_type_name());
+        let statement = format!("CREATE (u:{} {{session_id: $session_id, started: $started, refreshed: $refreshed }}) RETURN u", Session::get_node_type_name());
         let params = Params::from_iter(vec![("session_id", new_entity.session_id.clone()),
             ("started", new_entity.started.to_string()), ("refreshed", new_entity.refreshed.to_string())]);
         
@@ -54,9 +54,9 @@ impl  WriteRepository<Session> for SessionRepository {
         if (result.is_ok()) {
             let session = Arc::new(result.unwrap());
             let user = new_entity.user.clone();
-            client.create_relationship(session.clone(), user, &String::from("OWNED_BY"), None);
+            let session_result = client.create_relationship(session.clone(), user, &String::from("OWNED_BY"), None).await;
 
-            return Ok(session);
+            return session_result.map(|_| session);
         }
 
         Err(result.unwrap_err())
