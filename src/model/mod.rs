@@ -1,4 +1,4 @@
-use std::{fmt::{Display, Debug, self}, sync::Arc, collections::HashMap};
+use std::{fmt::{Display, Debug, self}, sync::{Arc, Mutex}, collections::HashMap};
 
 use bolt_client::bolt_proto::{value::{Node, Relationship}, Value};
 pub use user::User;
@@ -38,36 +38,37 @@ impl Id for u32 {
 
 #[derive(Debug)]
 pub struct Relation<S: Entity, T: Entity> {
-    source_node: Arc<S>,
-    target_node: Arc<T>,
+    source_node: Arc<Mutex<S>>,
+    target_node: Arc<Mutex<T>>,
     name: String,
     params_opt: Option<HashMap<String, Value>>,
 }
 
 impl <S: Entity, T: Entity> Relation<S, T> {
-    pub fn new(source_node: Arc<S>, target_node: Arc<T>, name: String, params_opt: Option<HashMap<String, Value>>) -> Result<Relation<S, T>, String> {
-        if source_node.get_id().is_none() || target_node.get_id().is_none() {
-            Err(format!("Both nodes need to have an Id when creating a relation; source_node.id: {}; target_node.id: {}", source_node, target_node))
+    pub fn new(source_node: Arc<Mutex<S>>, target_node: Arc<Mutex<T>>, name: String, params_opt: Option<HashMap<String, Value>>) -> Result<Relation<S, T>, String> {
+
+        if source_node.lock().unwrap().get_id().is_none() || target_node.lock().unwrap().get_id().is_none() {
+            Err(format!("Both nodes need to have an Id when creating a relation; source_node.id: {}; target_node.id: {}", source_node.lock().unwrap(), target_node.lock().unwrap()))
         } else {
-            Ok(Relation { source_node: source_node.clone(), target_node: target_node.clone(), name, params_opt })
+            Ok(Relation { source_node: source_node, target_node, name, params_opt })
         }
     }
 
     pub fn get_create_statement(&self) -> String {
         let statement = format!("MATCH (s:{}), (t:{}) WHERE id(s) = {} AND id(t) = {} CREATE (s)-[r:{} {}]->(t) RETURN r",
-        S::get_node_type_name(), T::get_node_type_name(), self.source_node.get_id().as_ref().unwrap(), self.target_node.get_id().as_ref().unwrap(), self.name, self.params_to_str());
+        S::get_node_type_name(), T::get_node_type_name(), self.source_node.lock().unwrap().get_id().as_ref().unwrap(), self.target_node.lock().unwrap().get_id().as_ref().unwrap(), self.name, self.params_to_str());
         statement
     }
 
     pub fn get_match_statement(&self) -> String {
         let statement = format!("MATCH (s:{}) -[r:{}]- (t:{}) WHERE id(s) = {} AND id(t) = {} RETURN r",
-        S::get_node_type_name(), self.name, T::get_node_type_name(), self.source_node.get_id().as_ref().unwrap(), self.target_node.get_id().as_ref().unwrap());
+        S::get_node_type_name(), self.name, T::get_node_type_name(), self.source_node.lock().unwrap().get_id().as_ref().unwrap(), self.target_node.lock().unwrap().get_id().as_ref().unwrap());
         statement
     }
 
     pub fn get_delete_statement(&self) -> String {
         let statement = format!("MATCH (s:{}) -[r:{}]- (t:{}) WHERE id(s) = {} AND id(t) = {} DELETE r",
-        S::get_node_type_name(), self.name, T::get_node_type_name(), self.source_node.get_id().as_ref().unwrap(), self.target_node.get_id().as_ref().unwrap());
+        S::get_node_type_name(), self.name, T::get_node_type_name(), self.source_node.lock().unwrap().get_id().as_ref().unwrap(), self.target_node.lock().unwrap().get_id().as_ref().unwrap());
         statement
     }
 
@@ -129,7 +130,7 @@ impl <S: Entity, T: Entity> Relation<S, T> {
             Some(properties.clone())
         };
 
-        let relation = Relation::new(Arc::new(source_res.unwrap()), Arc::new(target_res.unwrap()), String::from(name), params_opt);
+        let relation = Relation::new(Arc::new(Mutex::new(source_res.unwrap())), Arc::new(Mutex::new(target_res.unwrap())), String::from(name), params_opt);
 
         relation
     }

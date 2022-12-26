@@ -117,7 +117,7 @@ impl Logic for ApplicationLogic {
             return Err(String::from("Wrong password"))
         }
 
-        let new_session = Session::new(None, Arc::new(user));
+        let new_session = Session::new(None, Arc::new(Mutex::new(user)));
         let session_res = self.session_repo.add(&new_session).await;
 
         session_res

@@ -1,4 +1,4 @@
-use std::{env, collections::HashMap, sync::Arc};
+use std::{env, collections::HashMap, sync::{Arc, Mutex as StdMutex}};
 use dotenv::dotenv;
 use rocket::{tokio::{net::TcpStream, io::BufStream}, futures::lock::Mutex};
 
@@ -24,7 +24,7 @@ pub trait DbClient {
     async fn create<E: Entity> (&self, statement: String, params: Params) -> Result<E, DbActionError>;
     async fn update<E: Entity> (&self, statement: String, params: Params) -> Result<E, DbActionError>;
     async fn delete<E: Entity> (&self, entity: &E) -> Result<(), DbActionError>;
-    async fn create_relationship<S: Entity, T: Entity> (&self, source: Arc<S>, target: Arc<T>, name: &String, params_opt: Option<HashMap<String, Value>>) -> Result<Relation<S, T>, DbActionError>;
+    async fn create_relationship<S: Entity, T: Entity> (&self, source: Arc<StdMutex<S>>, target: Arc<StdMutex<T>>, name: &String, params_opt: Option<HashMap<String, Value>>) -> Result<Relation<S, T>, DbActionError>;
     async fn fetch_relations_of_type<S: Entity, T: Entity>(&self, source: Arc<S>, name: &String) -> Result<Vec<Relation<S, T>>, DbActionError>;
     async fn fetch_single_relation<S: Entity, T: Entity>(&self, source: Arc<S>, target: Arc<T>, name: &String) -> Result<Relation<S, T>, DbActionError>;
     async fn delete_relation<S: Entity, T: Entity>(&self, source: Arc<S>, target: Arc<T>, name: &String) -> Result<(), DbActionError>;
@@ -151,7 +151,7 @@ impl Neo4JClient {
         entities
     }
 
-    async fn pull_relations<S: Entity, T: Entity>(&self, client: &mut Client<Compat<BufStream<TcpStream>>>, metadata: Option<Metadata>, source_node: Arc<S>, target_node: Arc<T>) -> Result<Vec<Relation<S, T>>, DbActionError> {
+    async fn pull_relations<S: Entity, T: Entity>(&self, client: &mut Client<Compat<BufStream<TcpStream>>>, metadata: Option<Metadata>, source_node: Arc<StdMutex<S>>, target_node: Arc<StdMutex<T>>) -> Result<Vec<Relation<S, T>>, DbActionError> {
         let records_result = self.pull_records(client, metadata).await;
         if records_result.is_err() {
             return Err(records_result.unwrap_err());
@@ -232,7 +232,7 @@ impl Neo4JClient {
         result
     }
 
-    async fn perform_action_returning_one_relation<S: Entity, T: Entity>(&self, action_name: &str, statement: String, params_opt: Option<Params>, source_node: Arc<S>, target_node: Arc<T>, is_write_action: bool) -> Result<Relation<S, T>, DbActionError> {
+    async fn perform_action_returning_one_relation<S: Entity, T: Entity>(&self, action_name: &str, statement: String, params_opt: Option<Params>, source_node: Arc<StdMutex<S>>, target_node: Arc<StdMutex<T>>, is_write_action: bool) -> Result<Relation<S, T>, DbActionError> {
         let run_result = self.run(statement, params_opt, is_write_action).await;
         
         if run_result.is_err() {
@@ -329,7 +329,7 @@ impl DbClient for Neo4JClient {
         Ok(())
     }
 
-    async fn create_relationship<S: Entity, T: Entity> (&self, source: Arc<S>, target: Arc<T>, name: &String, params_opt: Option<HashMap<String, Value>>) -> Result<Relation<S, T>, DbActionError> {
+    async fn create_relationship<S: Entity, T: Entity> (&self, source: Arc<StdMutex<S>>, target: Arc<StdMutex<T>>, name: &String, params_opt: Option<HashMap<String, Value>>) -> Result<Relation<S, T>, DbActionError> {
 
         let relation_res = Relation::new(source.clone(), target.clone(), name.clone(), params_opt);
         if relation_res.is_err() {

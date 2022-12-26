@@ -22,8 +22,8 @@ pub async fn get_user_by_username<'a>(username: String, repository: &State<Appli
 
 #[openapi(tag = "User")]
 #[get("/user")]
-pub async fn get_current_user<'a>(session: Session) -> Json<Arc<User>> {
-    Json(session.user)
+pub async fn get_current_user<'a>(session: Session) -> Json<User> {
+    Json(session.user.lock().unwrap().clone())
 }
 
 #[openapi(tag = "User")]

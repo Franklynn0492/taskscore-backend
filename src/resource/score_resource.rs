@@ -12,7 +12,7 @@ use crate::model::{Score, Session};
 #[post("/score/<task_id>")]
 pub async fn score<'a>(session: Session, task_id: u32, repository: &State<ApplicationLogic>) -> Result<Json<u16>, NotFound<String>> {
     let user = session.user;
-    let user_id = user.id.unwrap();
+    let user_id = user.lock().unwrap().id.unwrap();
 
     match block_on(repository.score(user_id, task_id)) {
         Ok(new_score) => Ok(Json(new_score)),
@@ -29,5 +29,5 @@ pub async fn get_score_of_user<'a>(user_id: u32, repository: &State<ApplicationL
 #[openapi(tag = "Score")]
 #[get("/score")]
 pub async fn get_score_of_current_user<'a>(session: Session) -> Json<Vec<Arc<Score>>> {
-    Json(session.user.scores.iter().map(|s| s.clone()).collect())
+    Json(session.user.lock().unwrap().scores.iter().map(|s| s.clone()).collect())
 }
