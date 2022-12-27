@@ -9,7 +9,7 @@ use schemars::JsonSchema;
 
 use crate::logic::logic::{Logic, ApplicationLogic};
 
-use super::{Task, Score, Entity, util::{self, get_string, get_bool, get_u16, get_u32}, FromInput};
+use super::{Task, Score, Entity, util::{self, get_string, get_bool, get_u16, get_u32, try_get_string}, FromInput};
 
 #[derive(serde::Serialize, Clone, JsonSchema, OpenApiFromRequest, Debug)]
 pub struct User {
@@ -23,16 +23,16 @@ pub struct User {
     pub scores: Vec<Arc<Score>>,
     
     #[serde(skip_serializing)]
-    pub pwd_hash_components: Option<String>,
+    pub pwd_hash: Option<String>,
 }
 
 impl User {
     pub fn new(id: Option<u32>, username: String, display_name: String, is_admin: bool) -> User {
-        User {id, username: username, display_name: display_name, points: 0, scores: vec![], pwd_hash_components: None, is_admin}
+        User {id, username: username, display_name: display_name, points: 0, scores: vec![], pwd_hash: None, is_admin}
     }
 
     pub fn get_default_user() -> User {
-        User {id: None, display_name: "Guy Incognito".to_owned(), is_admin: true, points: 9, pwd_hash_components: None, scores: vec![], username: "guyincognito".to_owned()}
+        User {id: None, display_name: "Guy Incognito".to_owned(), is_admin: true, points: 9, pwd_hash: None, scores: vec![], username: "guyincognito".to_owned()}
     }
 
     pub fn score_task<'a>(& mut self, task: Task) {
@@ -43,11 +43,11 @@ impl User {
     }
 
     pub fn set_password(&mut self, password: String) {
-        self.pwd_hash_components = Some(bcrypt::hash(password, DEFAULT_COST).unwrap());
+        self.pwd_hash = Some(bcrypt::hash(password, DEFAULT_COST).unwrap());
     }
 
     pub fn verify_password(&self, password_to_verify: &Option<String>) -> bool {
-        match &self.pwd_hash_components {
+        match &self.pwd_hash {
             Some(hash) => match password_to_verify {
                 Some(pwd_to_verify) => bcrypt::verify(pwd_to_verify, hash.as_str()).unwrap(),
                 None => false,
@@ -121,11 +121,12 @@ impl From<Node> for User {
         let properties = value.properties();
         let id =  Some(value.node_identity() as u32);
         let username =  get_string(properties, "username", "N/A");
+        let pwd_hash = try_get_string(properties, "pwd_hash");
         let display_name = get_string(properties, "display_name", "N/A");
         let is_admin = get_bool(properties, "is_admin", false);
         let points = get_u16(properties, "points", 0);
 
-        User{id, username, display_name, is_admin, points, scores: vec![], pwd_hash_components: None}
+        User{id, username, display_name, is_admin, points, scores: vec![], pwd_hash}
     }
 }
 

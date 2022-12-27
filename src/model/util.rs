@@ -11,6 +11,13 @@ pub fn get_string(properties: &HashMap<String, Value>, key: &str, alternative: &
     }
 }
 
+pub fn try_get_string(properties: &HashMap<String, Value>, key: &str) -> Option<String>  {
+    match properties.get(key) {
+        Some(Value::String(val)) => Some(val.clone()),
+        _ => None
+    }
+}
+
 pub fn get_bool(properties: &HashMap<String, Value>, key: &str, alternative: bool) -> bool  {
     match properties.get(key) {
         Some(Value::Boolean(val)) => *val,

@@ -156,7 +156,8 @@ impl Neo4JClient {
 
             }
 
-            let node_result = E::try_from((node_map, relationship_map)).map_err(|err| "Unable to create entity".to_owned());
+            let node_result = E::try_from((node_map, relationship_map))
+                .map_err(|err| format!("Unable to create entity object of type {}", E::get_node_type_name()));
             node_result
             
         }).collect::<Result<Vec<E>,_>>(); // Collecting into a result, in case a map fails. See: https://www.reddit.com/r/rust/comments/omsukl/falliable_iterators_why_no_try_map_for_iterator/

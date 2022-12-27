@@ -84,28 +84,27 @@ impl TryFrom<FromInput> for Session {
             return Err(String::from("Unable to create session from db node; no session nodes available"))
         }
 
-        if user_node_opt.is_none() {
-            return Err(String::from("Unable to create session from db node; no user nodes available"))
-        }
-        
         let mut session_node_vec = session_node_opt.unwrap();
-        let mut user_node_vec = user_node_opt.unwrap();
 
         if session_node_vec.len() != 1 {
             return Err(format!("Unable to create session from db node; unusual number of session nodes: {}", session_node_vec.len()));
         }
 
-        if user_node_vec.len() != 1 {
-            return Err(format!("Unable to create session from db node; unusual number of session nodes: {}", user_node_vec.len()));
+        let session_node = session_node_vec.pop().unwrap();
+        let mut session = Session::from(session_node);
+
+        if user_node_opt.is_some() {
+            let mut user_node_vec = user_node_opt.unwrap();
+
+            if user_node_vec.len() != 1 {
+                println!("Error while creating session from db node; unusual number of user nodes: {}", user_node_vec.len());
+            }
+
+            let user_node = user_node_vec.pop().unwrap();
+            let user = User::from(user_node);
+            session.user = Arc::new(Mutex::new(user));
         }
 
-        let session_node = session_node_vec.pop().unwrap();
-        let user_node = user_node_vec.pop().unwrap();
-
-        let mut session = Session::from(session_node);
-        let user = User::from(user_node);
-
-        session.user = Arc::new(Mutex::new(user));
         Ok(session)
     }
 }

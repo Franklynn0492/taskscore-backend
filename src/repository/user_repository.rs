@@ -41,9 +41,9 @@ impl  ModifyRepository<User> for UserRepository {
             return Err(format!("Id of entity {} is unknown; entity cannot be modified", entity_with_update_values));
         }
 
-        let statement = format!("MATCH (u:{}) WHERE id(u) = $id SET u.display_name = '$display_name', u.password = '$password', u.username = '$username' RETURN u", User::get_node_type_name());
+        let statement = format!("MATCH (u:{}) WHERE id(u) = $id SET u.display_name = '$display_name', u.pwd_hash = '$pwd_hash', u.username = '$username' RETURN u", User::get_node_type_name());
         let params = Params::from_iter(vec![("id", entity_with_update_values.id.unwrap().to_string()), ("display_name", entity_with_update_values.display_name.clone()),
-            ("password", entity_with_update_values.pwd_hash_components.clone().unwrap_or("".to_owned())), ("username", entity_with_update_values.username.clone())]);
+            ("pwd_hash", entity_with_update_values.pwd_hash.clone().unwrap_or("".to_owned())), ("username", entity_with_update_values.username.clone())]);
         
         let result = self.client.update::<User>(statement, params).await;
 
@@ -54,9 +54,9 @@ impl  ModifyRepository<User> for UserRepository {
 #[async_trait]
 impl  WriteRepository<User> for UserRepository {
     async fn add(&self, new_entity: &User) -> Result<Arc<User>, DbActionError> {
-        let statement = format!("CREATE (u:{} {{username: $username, display_name: $display_name, password: $password, is_admin: $is_admin }}) RETURN u", User::get_node_type_name());
+        let statement = format!("CREATE (u:{} {{username: $username, display_name: $display_name, pwd_hash: $pwd_hash, is_admin: $is_admin }}) RETURN u", User::get_node_type_name());
         let params = Params::from_iter(vec![("username", new_entity.username.clone()), ("display_name", new_entity.display_name.clone()),
-            ("password", new_entity.pwd_hash_components.clone().unwrap_or("".to_owned())), ("is_admin", new_entity.is_admin.to_string())]);
+            ("pwd_hash", new_entity.pwd_hash.clone().unwrap_or("".to_owned())), ("is_admin", new_entity.is_admin.to_string())]);
         
         let result = self.client.create::<User>(statement, params).await;
 

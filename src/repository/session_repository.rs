@@ -51,18 +51,18 @@ impl  WriteRepository<Session> for SessionRepository {
         let client = self.client.clone();
         let result = client.create::<Session>(statement, params).await;
 
-        if (result.is_ok()) {
-            let session_mutex = Arc::new(Mutex::new(result.unwrap()));
-            let user = new_entity.user.clone();
-            let session_relation_result = client.create_relationship(session_mutex.clone(), user.clone(), &String::from("OWNED_BY"), None).await;
-            let mut session = session_mutex.lock().unwrap();
-            session.user = user;
-
-
-            return session_relation_result.map(|_| Arc::new(session.clone()));
+        if result.is_err() {
+            return Err(result.unwrap_err())
         }
 
-        Err(result.unwrap_err())
+        let session_mutex = Arc::new(Mutex::new(result.unwrap()));
+        let user = new_entity.user.clone();
+        let session_relation_result = client.create_relationship(session_mutex.clone(), user.clone(), &String::from("OWNED_BY"), None).await;
+        let mut session = session_mutex.lock().unwrap();
+        session.user = user;
+
+
+        return session_relation_result.map(|_| Arc::new(session.clone()));
     }
 
     async fn delete(&self, entity_to_delete: &Session) -> Result<(), DbActionError> {

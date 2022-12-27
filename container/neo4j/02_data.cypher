@@ -2,10 +2,10 @@
 
 MATCH (n) DETACH DELETE n;
 
-CREATE (u_fl:User {username: 'roterkohl', display_name: 'Flori', password: 'Flori1234', is_admin: true }),
-	(u_mi:User {username: 'brutours.de', display_name: 'Michi', password: 'Michi1234' }),
-	(u_fr:User {username: 'dliwespf', display_name: 'Franki', password: 'Franki1234' }),
-	(u_to:User {username: 'topher', display_name: 'Topher', password: 'Topheri1234', is_admin: true }),
+CREATE (u_fl:User {username: 'roterkohl', display_name: 'Flori', pwd_hash: '$2b$12$bpojR9PuVfpoRs7nqONwGuf/kXD9tIKgxQyCT1CoZxz6KYYDb4mPG', is_admin: true }), // Flori1234
+	(u_mi:User {username: 'brutours.de', display_name: 'Michi', pwd_hash: '	$2b$12$gIcYE/nRDJ3E2lLWSRTw1.0PhDIVlyivKfbogz2XYTiu4k2gkrt96' }),	// Michi1234
+	(u_fr:User {username: 'dliwespf', display_name: 'Franki', pwd_hash: '$2b$12$4cTgPxlCKKngPqhHo5MJwOAoZxaRVZGSbioUpycjJTCB1Z/DLJ/BW' }),	// Franki1234
+	(u_to:User {username: 'topher', display_name: 'Topher', pwd_hash: '	$2b$12$mNX9uQs44Jv08fzVfCWXmO7P6rPE4bMnqgCSZ16RLZNAqho/OqGdC', is_admin: true }),	//Topheri1234
 
 	(t_bl:Task { name: 'Blumen gießen', points: 10, enabled: true }),
 	(t_st:Task { name: 'Stunden abgeben', points: 30, enabled: false }),
