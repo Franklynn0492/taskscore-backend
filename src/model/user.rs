@@ -133,7 +133,7 @@ impl TryFrom<FromInput> for User {
     type Error = String;
     fn try_from(input: FromInput) -> Result<Self, Self::Error> {
         let mut node_map = input.0;
-        let user_node_opt = node_map.remove(Task::get_node_type_name());
+        let user_node_opt = node_map.remove(User::get_node_type_name());
 
         if user_node_opt.is_none() {
             return Err(String::from("Unable to create user from db node; no user nodes available"))

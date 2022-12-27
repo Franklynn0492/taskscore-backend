@@ -4,6 +4,7 @@ use crate::repository::repository::*;
 
 #[cfg(test)]
 use mockall::automock;
+use rocket::http::Status;
 
 use crate::{model::{User, Task, Session, session::LoginRequest, user::Team}, resource::http::responder::MessageResponder, repository::{user_repository::UserRepository}};
 
@@ -100,7 +101,27 @@ impl Logic for ApplicationLogic {
     }
     
     async fn add_user(&self, session: &Session, user: User) -> MessageResponder<u32> {
-        !unimplemented!();
+        let session_user_is_admin = session.user.lock().unwrap().is_admin;
+
+        if !session_user_is_admin {
+            return MessageResponder::create_with_message(Status::Forbidden, String::from("You must be an admin in order to create a user"));
+        }
+
+        let check_for_user_result = self.user_repo.find_user_by_username(&user.username).await;
+        if check_for_user_result.is_err() || check_for_user_result.unwrap().is_some() {
+            return MessageResponder::create_with_message(Status::Conflict, String::from("Username is not available"));
+        }
+
+
+        let add_user_result = self.user_repo.add(&user).await;
+
+        match add_user_result {
+            Ok(user) => match user.id {
+                    Some(id) => MessageResponder::create_ok(id),
+                    None => MessageResponder::create_with_message(Status::InternalServerError, String::from("For some reason the created user does not have an id")),
+                },
+            Err(msg) => MessageResponder::create_with_message(Status::InternalServerError, msg),
+        }
     }
     
     async fn login(&self, login_request: LoginRequest) -> Result<Arc<Session>, String> {
