@@ -16,7 +16,7 @@ impl SessionRepository {
     }
 
     pub async fn find_session_by_session_id(&self, session_id: &String) -> Result<Option<Session>, DbActionError> {
-        let statement = format!("MATCH (u:{} {{session_id: $session_id}}) RETURN u", Session::get_node_type_name());
+        let statement = format!("MATCH (s:{} {{session_id: $session_id}})-[o:OWNED_BY]-(u:User) RETURN s,o,u", Session::get_node_type_name());
         let params = Params::from_iter(vec![("session_id", session_id.clone())]);
 
         let result = self.client.fetch_single::<Session>(statement, params).await;
@@ -32,7 +32,7 @@ impl  ModifyRepository<Session> for SessionRepository {
             return Err(format!("Id of entity {} is unknown; entity cannot be modified", entity_with_update_values));
         }
 
-        let statement = format!("MATCH (u:{}) WHERE id(u) = $id SET p.refreshed = $refreshed RETURN u", Session::get_node_type_name());
+        let statement = format!("MATCH (s:{}) WHERE id(u) = $id SET p.refreshed = $refreshed RETURN s", Session::get_node_type_name());
         let params = Params::from_iter(vec![("id", entity_with_update_values.id.unwrap().to_string()), ("refreshed", entity_with_update_values.refreshed.to_string())]);
         
         let result = self.client.update::<Session>(statement, params).await;

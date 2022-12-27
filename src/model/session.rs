@@ -10,7 +10,7 @@ use base64;
 
 use crate::logic::logic::{Logic, ApplicationLogic};
 
-use super::{User, Entity, util::{get_string, get_utc}};
+use super::{User, Entity, util::{get_string, get_utc}, FromInput};
 use rand::Rng;
 
 const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -73,6 +73,43 @@ impl Display for Session {
     }
 }
 
+impl TryFrom<FromInput> for Session {
+    type Error = String;
+    fn try_from(input: FromInput) -> Result<Self, Self::Error> {
+        let mut node_map = input.0;
+        let session_node_opt = node_map.remove(Session::get_node_type_name());
+        let user_node_opt = node_map.remove(User::get_node_type_name());
+
+        if session_node_opt.is_none() {
+            return Err(String::from("Unable to create session from db node; no session nodes available"))
+        }
+
+        if user_node_opt.is_none() {
+            return Err(String::from("Unable to create session from db node; no user nodes available"))
+        }
+        
+        let mut session_node_vec = session_node_opt.unwrap();
+        let mut user_node_vec = user_node_opt.unwrap();
+
+        if session_node_vec.len() != 1 {
+            return Err(format!("Unable to create session from db node; unusual number of session nodes: {}", session_node_vec.len()));
+        }
+
+        if user_node_vec.len() != 1 {
+            return Err(format!("Unable to create session from db node; unusual number of session nodes: {}", user_node_vec.len()));
+        }
+
+        let session_node = session_node_vec.pop().unwrap();
+        let user_node = user_node_vec.pop().unwrap();
+
+        let mut session = Session::from(session_node);
+        let user = User::from(user_node);
+
+        session.user = Arc::new(Mutex::new(user));
+        Ok(session)
+    }
+}
+
 impl From<Node> for Session {
     fn from(value: Node) -> Self {
         let properties = value.properties();
@@ -84,8 +121,6 @@ impl From<Node> for Session {
         session
     }
 }
-
-
 
 #[async_trait]
 impl <'a> FromRequest<'a> for Session {

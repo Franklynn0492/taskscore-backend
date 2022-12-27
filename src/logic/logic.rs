@@ -1,5 +1,5 @@
 use std::{sync::{Arc, Mutex}};
-use crate::repository::{client::{Neo4JClient}, user_repository, session_repository::SessionRepository};
+use crate::repository::{client::{Neo4JClient}, user_repository, session_repository::{SessionRepository, self}};
 use crate::repository::repository::*;
 
 #[cfg(test)]
@@ -28,7 +28,6 @@ pub trait Logic {
 
 // This struct will become quite big (or at least its implementation) Might have to break it up sooner or later.
 pub struct ApplicationLogic {
-    db_client: Arc<Neo4JClient>,
     user_repo: UserRepository,
     session_repo: SessionRepository,
 }
@@ -41,7 +40,7 @@ impl ApplicationLogic {
         let user_repo = UserRepository::new(db_client.clone());
         let session_repo = SessionRepository::new(db_client.clone());
 
-        Ok(ApplicationLogic { db_client, user_repo, session_repo })
+        Ok(ApplicationLogic { user_repo, session_repo })
     }
     
 }
@@ -74,7 +73,14 @@ impl Logic for ApplicationLogic {
     }
     
     async fn get_session(&self, session_id: &String) -> Option<Session> {
-        !unimplemented!();
+        let session_opt_res = self.session_repo.find_session_by_session_id(session_id).await;
+
+        if session_opt_res.is_err() {
+            println!("Error getting session id: {}", session_opt_res.unwrap_err());
+            None
+        } else {
+            session_opt_res.unwrap()
+        }
     }
     
     async fn score(&self, user_id: u32, task_id: u32) -> Result<u16, String> {

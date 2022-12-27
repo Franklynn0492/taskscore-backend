@@ -9,7 +9,7 @@ use schemars::JsonSchema;
 
 use crate::logic::logic::{Logic, ApplicationLogic};
 
-use super::{Task, Score, Entity, util::{self, get_string, get_bool, get_u16, get_u32}};
+use super::{Task, Score, Entity, util::{self, get_string, get_bool, get_u16, get_u32}, FromInput};
 
 #[derive(serde::Serialize, Clone, JsonSchema, OpenApiFromRequest, Debug)]
 pub struct User {
@@ -117,8 +117,6 @@ impl Display for User {
 }
 
 impl From<Node> for User {
-
-
     fn from(value: Node) -> Self {
         let properties = value.properties();
         let id =  Some(value.node_identity() as u32);
@@ -128,6 +126,29 @@ impl From<Node> for User {
         let points = get_u16(properties, "points", 0);
 
         User{id, username, display_name, is_admin, points, scores: vec![], pwd_hash_components: None}
+    }
+}
+
+impl TryFrom<FromInput> for User {
+    type Error = String;
+    fn try_from(input: FromInput) -> Result<Self, Self::Error> {
+        let mut node_map = input.0;
+        let user_node_opt = node_map.remove(Task::get_node_type_name());
+
+        if user_node_opt.is_none() {
+            return Err(String::from("Unable to create user from db node; no user nodes available"))
+        }
+        
+        let mut user_node_vec = user_node_opt.unwrap();
+
+        if user_node_vec.len() != 1 {
+            return Err(format!("Unable to create user from db node; unusual number of user nodes: {}", user_node_vec.len()));
+        }
+
+        let user_node = user_node_vec.pop().unwrap();
+
+        let user = User::from(user_node);
+        Ok(user)
     }
 }
 
@@ -189,6 +210,13 @@ impl Display for Team {
 
 impl From<Node> for Team {
     fn from(value: Node) -> Self {
+        !unimplemented!();
+    }
+}
+
+impl TryFrom<FromInput> for Team {
+    type Error = String;
+    fn try_from(input: FromInput) -> Result<Self, Self::Error> {
         !unimplemented!();
     }
 }

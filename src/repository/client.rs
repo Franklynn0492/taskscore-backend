@@ -8,7 +8,7 @@ use tokio_util::compat::*;
 #[cfg(test)]
 use mockall::automock;
 
-use crate::model::{Entity, Id, Relation};
+use crate::model::{Entity, Id, Relation, FromInput};
 
 use super::repository::DbActionError;
 
@@ -138,13 +138,26 @@ impl Neo4JClient {
         }
 
         let entities = records.into_iter().map(|record| {
-            let node_result = Node::try_from(record.fields()[0].clone());
+            let mut node_map = HashMap::new();
+            let mut relationship_map = HashMap::new();
+            for field in record.fields() {
+                match field {
+                    Value::Node(node) => {
+                            let name = node.labels()[0].clone();
+                            node_map.entry(name).or_insert_with(Vec::new).push(node.clone());
+                        },
+                    Value::Relationship(relationship) => {
+                            
+                        let name = relationship.rel_type().to_owned();
+                        relationship_map.entry(name).or_insert_with(Vec::new).push(relationship.clone());
+                        }
+                    _ => (),
+                }
 
-            if node_result.is_ok() {
-                Ok(E::from(node_result.unwrap()))
-            } else {
-                Err("Unable to create node from record".to_owned())
             }
+
+            let node_result = E::try_from((node_map, relationship_map)).map_err(|err| "Unable to create entity".to_owned());
+            node_result
             
         }).collect::<Result<Vec<E>,_>>(); // Collecting into a result, in case a map fails. See: https://www.reddit.com/r/rust/comments/omsukl/falliable_iterators_why_no_try_map_for_iterator/
 

@@ -5,7 +5,7 @@ use bolt_client::bolt_proto::value::Node;
 use chrono::{DateTime, Utc};
 use rocket_okapi::okapi::schemars::JsonSchema;
 
-use super::Entity;
+use super::{Entity, FromInput};
 
 #[derive(serde::Serialize, Clone, JsonSchema, Debug)]
 pub struct Task {
@@ -36,6 +36,29 @@ impl Display for Task {
 impl From<Node> for Task {
     fn from(value: Node) -> Self {
         !unimplemented!();
+    }
+}
+
+impl TryFrom<FromInput> for Task {
+    type Error = String;
+    fn try_from(input: FromInput) -> Result<Self, Self::Error> {
+        let mut node_map = input.0;
+        let task_node_opt = node_map.remove(Task::get_node_type_name());
+
+        if task_node_opt.is_none() {
+            return Err(String::from("Unable to create task from db node; no task nodes available"))
+        }
+        
+        let mut task_node_vec = task_node_opt.unwrap();
+
+        if task_node_vec.len() != 1 {
+            return Err(format!("Unable to create task from db node; unusual number of task nodes: {}", task_node_vec.len()));
+        }
+
+        let task_node = task_node_vec.pop().unwrap();
+
+        let task = Task::from(task_node);
+        Ok(task)
     }
 }
 

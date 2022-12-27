@@ -1,4 +1,4 @@
-use std::{fmt::{Display, Debug, self}, sync::{Arc, Mutex}, collections::HashMap};
+use std::{fmt::{Display, Debug, self}, sync::{Arc, Mutex}, collections::HashMap, rc::Rc};
 
 use bolt_client::bolt_proto::{value::{Node, Relationship}, Value};
 pub use user::User;
@@ -13,7 +13,9 @@ pub mod user;
 pub mod task;
 mod util;
 
-pub trait Entity: From<Node> + Send + Sync + 'static + Display + Debug {
+pub type FromInput = (HashMap<String, Vec<Node>>, HashMap<String, Vec<Relationship>>);
+
+pub trait Entity: TryFrom<FromInput> + From<Node> + Send + Sync + 'static + Display + Debug {
     type I: Id;
 
     fn get_id(&self) -> &Option<Self::I>;
