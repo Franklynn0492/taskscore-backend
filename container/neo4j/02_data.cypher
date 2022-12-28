@@ -14,14 +14,14 @@ CREATE (u_fl:User {username: 'roterkohl', display_name: 'Flori', pwd_hash: '$2b$
 	
 	(te_ba: Team { id: 1, name: 'Babes' }),
 	(te_ch: Team { id: 2, name: 'Church' }),
-	(u_fl)-[:MANAGES] -> (te_ba),
-	(u_mi)-[:MANAGES] -> (te_ch),
+	(te_ba)-[:MANAGED_BY] -> (u_fl),
+	(te_ch)-[:MANAGED_BY] -> (u_mi),
 	
-	(u_fl)-[:MEMBER_OF] -> (te_ba),
-	(u_mi)-[:MEMBER_OF] -> (te_ch),
-	(u_fr)-[:MEMBER_OF] -> (te_ch),
-	(u_fl)-[:MEMBER_OF] -> (te_ch),
-	(u_to)-[:MEMBER_OF] -> (te_ch),
+	(te_ba)-[:MEMBER] -> (u_fl),
+	(te_ch)-[:MEMBER] -> (u_mi),
+	(te_ch)-[:MEMBER] -> (u_fr),
+	(te_ch)-[:MEMBER] -> (u_fl),
+	(te_ch)-[:MEMBER] -> (u_to),
 	
 	(u_fl)-[:SCORED {points: 10, scored_at: localdatetime()}] -> (t_bl),
 	(u_fl)-[:SCORED {points: 10, scored_at: localdatetime()}] -> (t_bl),
