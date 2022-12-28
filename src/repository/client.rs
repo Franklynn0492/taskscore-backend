@@ -25,7 +25,8 @@ pub trait DbClient {
     async fn update<E: Entity> (&self, statement: String, params: Params) -> Result<E, DbActionError>;
     async fn delete<E: Entity> (&self, entity: &E) -> Result<(), DbActionError>;
     async fn create_relationship<S: Entity, T: Entity> (&self, source: Arc<StdMutex<S>>, target: Arc<StdMutex<T>>, name: &String, params_opt: Option<HashMap<String, Value>>) -> Result<Relation<S, T>, DbActionError>;
-    async fn fetch_relations_of_type<S: Entity, T: Entity>(&self, source: Arc<S>, name: &String) -> Result<Vec<Relation<S, T>>, DbActionError>;
+    async fn fetch_relations_of_node_of_type<S: Entity, T: Entity>(&self, source: Arc<S>, name: &String) -> Result<Vec<Relation<S, T>>, DbActionError>;
+    async fn fetch_relations_of_type<S: Entity, T: Entity>(&self, name: &String) -> Result<Vec<Relation<S, T>>, DbActionError>;
     async fn fetch_single_relation<S: Entity, T: Entity>(&self, source: Arc<S>, target: Arc<T>, name: &String) -> Result<Relation<S, T>, DbActionError>;
     async fn delete_relation<S: Entity, T: Entity>(&self, source: Arc<S>, target: Arc<T>, name: &String) -> Result<(), DbActionError>;
 }
@@ -165,7 +166,7 @@ impl Neo4JClient {
         entities
     }
 
-    async fn pull_relations<S: Entity, T: Entity>(&self, client: &mut Client<Compat<BufStream<TcpStream>>>, metadata: Option<Metadata>, source_node: Arc<StdMutex<S>>, target_node: Arc<StdMutex<T>>) -> Result<Vec<Relation<S, T>>, DbActionError> {
+    async fn pull_relations_with_predefined_nodes<S: Entity, T: Entity>(&self, client: &mut Client<Compat<BufStream<TcpStream>>>, metadata: Option<Metadata>, source_node: Arc<StdMutex<S>>, target_node: Arc<StdMutex<T>>) -> Result<Vec<Relation<S, T>>, DbActionError> {
         let records_result = self.pull_records(client, metadata).await;
         if records_result.is_err() {
             return Err(records_result.unwrap_err());
@@ -194,6 +195,65 @@ impl Neo4JClient {
         }).collect::<Result<Vec<Relation<S, T>>,_>>();
 
         entities
+    }
+
+
+    async fn pull_relations<S: Entity, T: Entity>(&self, client: &mut Client<Compat<BufStream<TcpStream>>>, metadata: Option<Metadata>) -> Result<Vec<Relation<S, T>>, DbActionError> {
+        let records_result = self.pull_records(client, metadata).await;
+        if records_result.is_err() {
+            return Err(records_result.unwrap_err());
+        }
+
+        let records = records_result.unwrap();
+
+        if records.len() == 0 {
+            return Ok(vec![]);
+        }
+
+        let mut relationship_records = Vec::new();
+        let mut source_entities = HashMap::new();
+        let mut target_entities = HashMap::new();
+
+        let entities = records.into_iter().for_each(|record| {
+            let value = &record.fields()[0];
+            let relationship_result = Relationship::try_from(value.clone());
+
+            if relationship_result.is_ok() {
+                relationship_records.push(relationship_result.unwrap());
+                return;
+            }
+
+            let node_result = Node::try_from(value.clone());
+
+            if node_result.is_ok() {
+                let node = &node_result.unwrap();
+                
+                if node.labels()[0].eq(S::get_node_type_name()) {
+                    let source_entity = S::from(node.clone());
+                    let source_id: i64 = source_entity.get_id().unwrap().into();
+                    source_entities.insert(source_id, Arc::new(StdMutex::new(source_entity)));
+                }
+
+                // No else here; a node can be both start and target
+                if node.labels()[0].eq(T::get_node_type_name()) {
+                    let target_entity = T::from(node.clone());
+                    let target_id: i64 = target_entity.get_id().unwrap().into();
+                    target_entities.insert(target_id, Arc::new(StdMutex::new(target_entity)));
+                }
+            }
+            
+            println!("Selected value is neither a relationship, nor a source or target node");
+        });
+
+        let result = relationship_records.into_iter().map(|relationship| {
+            let source_entity = source_entities.get(&relationship.start_node_identity()).unwrap().clone(); // unwrap should be sage here (famous last words, I know)
+            let target_entity = target_entities.get(&relationship.end_node_identity()).unwrap().clone();
+            let relationship_type = relationship.rel_type().to_string();
+            let relation_res = Relation::new(source_entity, target_entity, relationship_type, None);
+            relation_res
+        }).collect::<Result<Vec<Relation<S, T>>,_>>();
+
+        result
     }
 
     async fn run(&self, statement: String, params_opt: Option<Params>, is_write_action: bool) -> Result<(), DbActionError> {
@@ -276,7 +336,7 @@ impl Neo4JClient {
         let mut client = self.client.lock().await;
         let metadata = Some(Metadata::from_iter(vec![("n", 1)]));
 
-        let pull_result = self.pull_relations::<S, T>(&mut client, metadata, source_node, target_node).await;
+        let pull_result = self.pull_relations_with_predefined_nodes::<S, T>(&mut client, metadata, source_node, target_node).await;
         
         let result = pull_result.and_then(|mut entity_vec| entity_vec.pop().ok_or(format!("{} did not return relation", action_name)));
 
@@ -285,6 +345,25 @@ impl Neo4JClient {
         }
         
         result
+    }
+
+    async fn perform_action_returning_relations<S: Entity, T: Entity>(&self, action_name: &str, statement: String, params_opt: Option<Params>, is_write_action: bool) -> Result<Vec<Relation<S, T>>, DbActionError> {
+        let run_result = self.run(statement, params_opt, is_write_action).await;
+        
+        if run_result.is_err() {
+            return Err(run_result.unwrap_err());
+        }
+
+        let mut client = self.client.lock().await;
+        let metadata = Some(Metadata::from_iter(vec![("n", -1)]));
+
+        let pull_result = self.pull_relations::<S, T>(&mut client, metadata).await;
+
+        if is_write_action {
+            Neo4JClient::commit(&mut client).await;
+        }
+        
+        pull_result
     }
 }
 
@@ -370,8 +449,23 @@ impl DbClient for Neo4JClient {
         result
     }
 
-    async fn fetch_relations_of_type<S: Entity, T: Entity>(&self, source: Arc<S>, name: &String) -> Result<Vec<Relation<S, T>>, DbActionError> {
-        unimplemented!();
+    async fn fetch_relations_of_node_of_type<S: Entity, T: Entity>(&self, source: Arc<S>, name: &String) -> Result<Vec<Relation<S, T>>, DbActionError> {
+        let src_id: i64 = source.get_id().as_ref().unwrap().clone().into();
+        let statement = format!("MATCH (s:{})-[r:{}]-(t:{}) WHERE id(s) = $id RETURN s,t,r", S::get_node_type_name(), name, T::get_node_type_name(), );
+        let params = Params::from_iter(vec![("id", Value::Integer(src_id))]);
+
+        let result = self.perform_action_returning_relations("Match relations of node of type", statement, Some(params), false).await;
+
+        result
+    }
+
+    async fn fetch_relations_of_type<S: Entity, T: Entity>(&self, name: &String) -> Result<Vec<Relation<S, T>>, DbActionError> {
+        let statement = format!("MATCH (s:{})-[r:{}]-(t:{}) RETURN s,t,r", S::get_node_type_name(), name, T::get_node_type_name());
+        let params = Params::from_iter::<Vec<(&str, &str)>>(vec![]);
+        
+        let result = self.perform_action_returning_relations("Match relations of type", statement, Some(params), false).await;
+
+        result
     }
 
     async fn fetch_single_relation<S: Entity, T: Entity>(&self, source: Arc<S>, target: Arc<T>, name: &String) -> Result<Relation<S, T>, DbActionError> {
