@@ -157,19 +157,16 @@ impl TryFrom<FromInput> for User {
 pub struct Team {
     pub id: Option<u32>,
     pub name: String,
-    pub manager_id: u32,
+    pub manager: Arc<Mutex<User>>,
     pub members: Vec<Arc<Mutex<User>>>,
-    pub member_ids: HashSet::<u32>,
 }
 
 impl Team {
     pub fn new(id: Option<u32>, name: String, manager: Arc<Mutex<User>>) -> Team {
         let members = vec![manager.clone()];
-        let mut member_ids = HashSet::new();
-        member_ids.insert(manager.lock().unwrap().id.unwrap());
-        Team { id, name, manager_id: manager.lock().unwrap().id.unwrap(), members, member_ids }
+        Team { id, name, manager, members }
     }
-
+/*
     pub fn add_user(&mut self, new_user: Arc<Mutex<User>>, authority: &User) -> Result<(), String> {
         let new_user_locked = new_user.lock().unwrap();
         if self.contains(&new_user_locked) {
@@ -184,10 +181,14 @@ impl Team {
         self.members.push(new_user.clone());
 
         Ok(())
-    }
+    }*/
 
     pub fn contains(&self, user: &User) -> bool {
-        self.member_ids.contains(&user.id.unwrap())
+        let result = self.members.into_iter().map(|member| member.lock().unwrap())
+            .filter(|member| member.get_id().is_some())
+            .any(|member| member.get_id().as_ref().unwrap() == &user.id.unwrap());
+
+        result
     }
 }
 
