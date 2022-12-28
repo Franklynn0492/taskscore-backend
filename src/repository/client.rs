@@ -25,7 +25,7 @@ pub trait DbClient {
     async fn update<E: Entity> (&self, statement: String, params: Params) -> Result<E, DbActionError>;
     async fn delete<E: Entity> (&self, entity: &E) -> Result<(), DbActionError>;
     async fn create_relationship<S: Entity, T: Entity> (&self, source: Arc<StdMutex<S>>, target: Arc<StdMutex<T>>, name: &String, params_opt: Option<HashMap<String, Value>>) -> Result<Relation<S, T>, DbActionError>;
-    async fn fetch_relations_of_node_of_type<S: Entity, T: Entity>(&self, source: Arc<S>, name: &String) -> Result<Vec<Relation<S, T>>, DbActionError>;
+    async fn fetch_relations_of_node_of_type<S: Entity, T: Entity>(&self, source: Arc<StdMutex<S>>, name: &String) -> Result<Vec<Relation<S, T>>, DbActionError>;
     async fn fetch_relations_of_type<S: Entity, T: Entity>(&self, name: &String) -> Result<Vec<Relation<S, T>>, DbActionError>;
     async fn fetch_single_relation<S: Entity, T: Entity>(&self, source: Arc<StdMutex<S>>, target: Arc<StdMutex<T>>, name: &String) -> Result<Relation<S, T>, DbActionError>;
     async fn delete_relation<S: Entity, T: Entity>(&self, source: &S, target: &T, name: &String) -> Result<(), DbActionError>;
@@ -449,8 +449,8 @@ impl DbClient for Neo4JClient {
         result
     }
 
-    async fn fetch_relations_of_node_of_type<S: Entity, T: Entity>(&self, source: Arc<S>, name: &String) -> Result<Vec<Relation<S, T>>, DbActionError> {
-        let src_id: i64 = source.get_id().as_ref().unwrap().clone().into();
+    async fn fetch_relations_of_node_of_type<S: Entity, T: Entity>(&self, source: Arc<StdMutex<S>>, name: &String) -> Result<Vec<Relation<S, T>>, DbActionError> {
+        let src_id: i64 = source.lock().unwrap().get_id().as_ref().unwrap().clone().into();
         let statement = format!("MATCH (s:{})-[r:{}]-(t:{}) WHERE id(s) = $id RETURN s,t,r", S::get_node_type_name(), name, T::get_node_type_name(), );
         let params = Params::from_iter(vec![("id", Value::Integer(src_id))]);
 
