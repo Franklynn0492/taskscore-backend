@@ -1,6 +1,6 @@
 use std::{sync::Arc};
 
-use bolt_client::{Params};
+use bolt_client::{Params, bolt_proto::Value};
 
 use crate::{model::{User}};
 use crate::model::entity::{Entity};
@@ -43,8 +43,8 @@ impl  ModifyRepository<User> for UserRepository {
         }
 
         let statement = format!("MATCH (u:{}) WHERE id(u) = $id SET u.display_name = '$display_name', u.pwd_hash = '$pwd_hash', u.username = '$username' RETURN u", User::get_node_type_name());
-        let params = Params::from_iter(vec![("id", entity_with_update_values.id.unwrap().to_string()), ("display_name", entity_with_update_values.display_name.clone()),
-            ("pwd_hash", entity_with_update_values.pwd_hash.clone().unwrap_or("".to_owned())), ("username", entity_with_update_values.username.clone())]);
+        let params = Params::from_iter(vec![("id", Value::Integer(entity_with_update_values.get_id().as_ref().unwrap().clone().into())), ("display_name", Value::String(entity_with_update_values.display_name.clone())),
+            ("pwd_hash", Value::String(entity_with_update_values.pwd_hash.clone().unwrap_or("".to_owned()))), ("username", Value::String(entity_with_update_values.username.clone()))]);
         
         let result = self.client.update::<User>(statement, params).await;
 
