@@ -32,10 +32,10 @@ impl Id for u32 {
 
 #[derive(Debug)]
 pub struct Relation<S: Entity, T: Entity> {
-    source_node: Arc<Mutex<S>>,
-    target_node: Arc<Mutex<T>>,
-    name: String,
-    params_opt: Option<HashMap<String, Value>>,
+    pub source_node: Arc<Mutex<S>>,
+    pub target_node: Arc<Mutex<T>>,
+    pub name: String,
+    pub params_opt: Option<HashMap<String, Value>>,
 }
 
 impl <S: Entity, T: Entity> Relation<S, T> {

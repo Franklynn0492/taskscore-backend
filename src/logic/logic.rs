@@ -1,5 +1,5 @@
 use std::{sync::{Arc, Mutex}};
-use crate::repository::{client::{Neo4JClient}, user_repository, session_repository::{SessionRepository, self}};
+use crate::repository::{client::{Neo4JClient}, user_repository, session_repository::{SessionRepository, self}, task_repository::TaskRepository, team_repository::TeamRepository};
 use crate::repository::repository::*;
 
 #[cfg(test)]
@@ -31,6 +31,8 @@ pub trait Logic {
 pub struct ApplicationLogic {
     user_repo: UserRepository,
     session_repo: SessionRepository,
+    task_repo: TaskRepository,
+    team_repo: TeamRepository,
 }
 pub type ApplicationLogicError = String;
 
@@ -40,8 +42,10 @@ impl ApplicationLogic {
 
         let user_repo = UserRepository::new(db_client.clone());
         let session_repo = SessionRepository::new(db_client.clone());
+        let task_repo = TaskRepository::new(db_client.clone());
+        let team_repo = TeamRepository::new(db_client.clone());
 
-        Ok(ApplicationLogic { user_repo, session_repo })
+        Ok(ApplicationLogic { user_repo, session_repo, task_repo, team_repo })
     }
     
 }
@@ -66,11 +70,25 @@ impl Logic for ApplicationLogic {
     }
     
     async fn get_task(&self, id: u32) -> Option<Task> {
-        !unimplemented!();
+        let task_result = self.task_repo.find_by_id(&id).await;
+        match task_result {
+            Ok(task_opt) => task_opt,
+            Err(msg) => {
+                println!("{}", msg);
+                None
+            }
+        }
     }
     
     async fn get_all_tasks(&self) -> Vec<Task> {
-        !unimplemented!();
+        let task_result = self.task_repo.find_all().await;
+        match task_result {
+            Ok(res) => res,
+            Err(msg) => {
+                println!("{}", msg);
+                vec![]
+            }
+        }
     }
     
     async fn get_session(&self, session_id: &String) -> Option<Session> {
@@ -85,7 +103,43 @@ impl Logic for ApplicationLogic {
     }
     
     async fn score(&self, user_id: u32, task_id: u32) -> Result<u16, String> {
-        !unimplemented!();
+        let user_opt_result = self.user_repo.find_by_id(&user_id).await;
+        if user_opt_result.is_err() {
+            return Err(user_opt_result.unwrap_err());
+        }
+
+        let user_opt = user_opt_result.unwrap();
+        if user_opt.is_none() {
+            return Err(format!("User with id '{}' not found", user_id));
+        }
+
+        let mut user = user_opt.unwrap();
+
+        let task_opt_result = self.task_repo.find_by_id(&user_id).await;
+        if task_opt_result.is_err() {
+            return Err(task_opt_result.unwrap_err());
+        }
+
+        let task_opt = task_opt_result.unwrap();
+        if task_opt.is_none() {
+            return Err(format!("Task with id '{}' not found", task_id));
+        }
+        
+        let task = task_opt.unwrap();
+        let task_points = task.points;
+
+        user.points += task_points;
+
+        let update_result = self.user_repo.update(&user).await;
+
+        match update_result {
+            Ok(updated_user) => Ok(updated_user.points),
+            Err(msg) => {
+                println!("Error when user {} scored task {}: {}", user_id, task_id, msg);
+                Err(msg)
+            }
+        }
+
     }
     
     async fn create_and_add_user(&self, username: String, display_name: String, password: String, is_admin: bool) -> Result<Arc<Mutex<User>>, String> {

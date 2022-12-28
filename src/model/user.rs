@@ -184,7 +184,7 @@ impl Team {
     }*/
 
     pub fn contains(&self, user: &User) -> bool {
-        let result = self.members.into_iter().map(|member| member.lock().unwrap())
+        let result = (&self.members).into_iter().map(|member| member.lock().unwrap())
             .filter(|member| member.get_id().is_some())
             .any(|member| member.get_id().as_ref().unwrap() == &user.id.unwrap());
 
