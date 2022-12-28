@@ -1,5 +1,5 @@
 use std::{sync::{Arc, Mutex}};
-use crate::repository::{client::{Neo4JClient}, user_repository, session_repository::{SessionRepository, self}, task_repository::TaskRepository, team_repository::TeamRepository};
+use crate::repository::{client::{Neo4JClient}, user_repository, session_repository::{SessionRepository, self}, task_repository::TaskRepository, team_repository::TeamRepository, relation_repository::RelationRepository};
 use crate::repository::repository::*;
 
 #[cfg(test)]
@@ -33,6 +33,7 @@ pub struct ApplicationLogic {
     session_repo: SessionRepository,
     task_repo: TaskRepository,
     team_repo: TeamRepository,
+    relation_repo: RelationRepository,
 }
 pub type ApplicationLogicError = String;
 
@@ -45,7 +46,9 @@ impl ApplicationLogic {
         let task_repo = TaskRepository::new(db_client.clone());
         let team_repo = TeamRepository::new(db_client.clone());
 
-        Ok(ApplicationLogic { user_repo, session_repo, task_repo, team_repo })
+        let relation_repo = RelationRepository::new(db_client.clone());
+
+        Ok(ApplicationLogic { user_repo, session_repo, task_repo, team_repo, relation_repo })
     }
     
 }
@@ -131,6 +134,12 @@ impl Logic for ApplicationLogic {
         user.points += task_points;
 
         let update_result = self.user_repo.update(&user).await;
+
+        let create_relation_result = self.relation_repo.create_relationship(Arc::new(Mutex::new(user)), Arc::new(Mutex::new(task)), &"SCORED".to_owned(), None).await;
+        if create_relation_result.is_err() {
+            let msg = create_relation_result.unwrap_err();
+            println!("Error when user {} scored task {}: {}; Ignoring", user_id, task_id, msg);
+        }
 
         match update_result {
             Ok(updated_user) => Ok(updated_user.points),
