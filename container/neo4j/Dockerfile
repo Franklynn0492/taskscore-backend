@@ -8,6 +8,14 @@ COPY init.sh ./
 
 VOLUME $HOME/neo4j/data:/data
 
+# Set the locale
+RUN apt-get update
+RUN apt-get -y install locales
+RUN sed -i '/de_DE.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
+ENV LANG de_DE.UTF-8  
+ENV LANGUAGE de_DE:de  
+ENV LC_ALL de_DE.UTF-8   
+
 ENV DB_PWD $PWD
 ENV NEO4J_AUTH neo4j/$PWD
 

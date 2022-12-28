@@ -1,5 +1,3 @@
-// ÄäÖöÜüß <- If these characters are not diosplayed correctly, please reopen in ANSI/ISO 8859-1
-
 :USE TASKSCORE;
 
 MATCH (n) DETACH DELETE n;
@@ -9,9 +7,9 @@ CREATE (u_fl:User {username: 'roterkohl', display_name: 'Flori', pwd_hash: '$2b$
 	(u_fr:User {username: 'dliwespf', display_name: 'Franki', pwd_hash: '$2b$12$4cTgPxlCKKngPqhHo5MJwOAoZxaRVZGSbioUpycjJTCB1Z/DLJ/BW' }),	// Franki1234
 	(u_to:User {username: 'topher', display_name: 'Topher', pwd_hash: '	$2b$12$mNX9uQs44Jv08fzVfCWXmO7P6rPE4bMnqgCSZ16RLZNAqho/OqGdC', is_admin: true }),	//Topheri1234
 
-	(t_bl:Task { name: 'Blumen gießen', points: 10, enabled: true }),
+	(t_bl:Task { name: 'Blumen gieÃŸen', points: 10, enabled: true }),
 	(t_st:Task { name: 'Stunden abgeben', points: 30, enabled: false }),
-	(t_sp:Task { name: 'Spülmaschine ausräumen', points: 52, enabled: true }),
+	(t_sp:Task { name: 'SpÃ¼lmaschine ausrÃ¤umen', points: 52, enabled: true }),
 	(t_ka:Task { name: 'Kaffee kochen', points: 75, enabled: true }),
 	
 	(te_ba: Team { id: 1, name: 'Babes' }),
