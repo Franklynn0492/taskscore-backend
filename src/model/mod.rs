@@ -33,7 +33,7 @@ pub trait Entity: TryFrom<FromInput> + From<Node> + Send + Sync + 'static + Disp
     }
 }
 
-pub trait Id: Send + Sync + 'static + Display + TryFrom<i64> {}
+pub trait Id: Send + Sync + 'static + Display + TryFrom<i64> + Into<i64> + Clone {}
 
 impl Id for u32 {
 }

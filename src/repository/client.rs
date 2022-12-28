@@ -224,6 +224,26 @@ impl Neo4JClient {
         }
     }
 
+    async fn perform_action_return_nothing(&self, statement: String, params_opt: Option<Params>, is_write_action: bool) -> Result<(), DbActionError> {
+        let run_result = self.run(statement, params_opt, is_write_action).await;
+        
+        if run_result.is_err() {
+            return Err(run_result.unwrap_err());
+        }
+
+        let mut client = self.client.lock().await;
+
+        let pull_result = self.pull_records(&mut client, Some(Metadata::from_iter(vec![("n", -1)]))).await;
+        
+        let result = pull_result.map(|_| ());
+
+        if is_write_action {
+            Neo4JClient::commit(&mut client).await;
+        }
+
+        result
+    }
+
     async fn perform_action_returning_one_entity<E: Entity>(&self, action_name: &str, statement: String, params_opt: Option<Params>, is_write_action: bool) -> Result<E, DbActionError> {
         let run_result = self.run(statement, params_opt, is_write_action).await;
         
@@ -294,7 +314,7 @@ impl DbClient for Neo4JClient {
 
         let mut client = self.client.lock().await;
 
-        let entities = self.pull_entities(&mut client, Some(Metadata::from_iter(vec![("n", i32::MAX)]))).await;
+        let entities = self.pull_entities(&mut client, Some(Metadata::from_iter(vec![("n", -1)]))).await;
         //Neo4JClient::discard(&mut client).await;
         entities
     }
@@ -328,19 +348,11 @@ impl DbClient for Neo4JClient {
         }
 
         let statement = format!("MATCH (p:{}) WHERE id(p) = $id DETACH DELETE p", E::get_node_type_name());
-        let params = Params::from_iter(vec![("id", entity.get_id().as_ref().unwrap().to_string())]);
+        let params = Params::from_iter(vec![("id", Value::Integer(entity.get_id().as_ref().unwrap().clone().into()))]);
 
-        let run_result = self.run(statement, Some(params), true).await;
+        let run_result = self.perform_action_return_nothing(statement, Some(params), true).await;
         
-        if run_result.is_err() {
-            return Err(run_result.unwrap_err());
-        }
-
-
-        let mut client = self.client.lock().await;
-        Neo4JClient::commit(&mut client).await;
-
-        Ok(())
+        run_result
     }
 
     async fn create_relationship<S: Entity, T: Entity> (&self, source: Arc<StdMutex<S>>, target: Arc<StdMutex<T>>, name: &String, params_opt: Option<HashMap<String, Value>>) -> Result<Relation<S, T>, DbActionError> {
