@@ -28,7 +28,7 @@ pub trait DbClient {
     async fn fetch_relations_of_node_of_type<S: Entity, T: Entity>(&self, source: Arc<S>, name: &String) -> Result<Vec<Relation<S, T>>, DbActionError>;
     async fn fetch_relations_of_type<S: Entity, T: Entity>(&self, name: &String) -> Result<Vec<Relation<S, T>>, DbActionError>;
     async fn fetch_single_relation<S: Entity, T: Entity>(&self, source: Arc<StdMutex<S>>, target: Arc<StdMutex<T>>, name: &String) -> Result<Relation<S, T>, DbActionError>;
-    async fn delete_relation<S: Entity, T: Entity>(&self, source: Arc<StdMutex<S>>, target: Arc<StdMutex<T>>, name: &String) -> Result<(), DbActionError>;
+    async fn delete_relation<S: Entity, T: Entity>(&self, source: &S, target: &T, name: &String) -> Result<(), DbActionError>;
 }
 
 pub struct Neo4JClient {
@@ -477,7 +477,26 @@ impl DbClient for Neo4JClient {
         result
     }
 
-    async fn delete_relation<S: Entity, T: Entity>(&self, source: Arc<StdMutex<S>>, target: Arc<StdMutex<T>>, name: &String) -> Result<(), DbActionError> {
-        unimplemented!();
+    async fn delete_relation<S: Entity, T: Entity>(&self, source: &S, target: &T, name: &String) -> Result<(), DbActionError> {
+
+        if source.get_id().is_none() {
+            return Err(format!("Relationship cannot be deleted; Source entity {} is unpersisted", source));
+        }
+
+        if target.get_id().is_none() {
+            return Err(format!("Relationship cannot be deleted; Target entity {} is unpersisted", target));
+        }
+
+        let src_id: i64 = source.get_id().as_ref().unwrap().clone().into();
+        let target_id: i64 = target.get_id().as_ref().unwrap().clone().into();
+
+        let statement = format!("MATCH (s:{})-[r:{}]-(t:{}) WHERE id(s) = {} AND id(t) = {} DELETE r",
+            S::get_node_type_name(), name, T::get_node_type_name(), src_id, target_id);
+
+        let params = Params::from_iter::<Vec<(&str, &str)>>(vec![]);
+
+        let run_result = self.perform_action_return_nothing(statement, Some(params), true).await;
+        
+        run_result
     }
 }
