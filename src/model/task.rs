@@ -5,7 +5,7 @@ use bolt_client::bolt_proto::value::Node;
 use chrono::{DateTime, Utc};
 use rocket_okapi::okapi::schemars::JsonSchema;
 
-use super::{Entity, FromInput};
+use super::entity::{Entity, FromInput};
 
 #[derive(serde::Serialize, Clone, JsonSchema, Debug)]
 pub struct Task {

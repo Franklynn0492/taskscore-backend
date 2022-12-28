@@ -8,7 +8,7 @@ use tokio_util::compat::*;
 #[cfg(test)]
 use mockall::automock;
 
-use crate::model::{Entity, Id, Relation, FromInput};
+use crate::model::entity::{Entity, Relation};
 
 use super::repository::DbActionError;
 

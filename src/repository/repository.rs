@@ -4,7 +4,7 @@ use std::sync::Arc;
 #[cfg(test)] // Include the following only if you reun tests
 use mockall::automock;
 
-use crate::model::Entity;
+use crate::model::entity::{Entity};
 
 pub type DbActionError = String;
 

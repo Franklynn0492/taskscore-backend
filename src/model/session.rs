@@ -10,7 +10,8 @@ use base64;
 
 use crate::logic::logic::{Logic, ApplicationLogic};
 
-use super::{User, Entity, util::{get_string, get_utc}, FromInput};
+use super::{User, util::{get_string, get_utc}};
+use super::entity::{Entity, FromInput};
 use rand::Rng;
 
 const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";

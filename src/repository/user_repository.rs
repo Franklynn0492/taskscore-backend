@@ -2,7 +2,8 @@ use std::{sync::Arc};
 
 use bolt_client::{Params};
 
-use crate::{model::{User, Entity}};
+use crate::{model::{User}};
+use crate::model::entity::{Entity};
 
 use super::{client::{Neo4JClient, DbClient}, repository::{ReadRepository, DbActionError, ModifyRepository, WriteRepository, ReadAllRepository}};
 

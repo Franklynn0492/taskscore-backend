@@ -2,9 +2,10 @@ use std::{sync::{Arc, Mutex}};
 
 use bolt_client::{Params};
 
-use crate::{model::{Session, Entity, User}};
+use crate::{model::{Session}};
+use crate::model::entity::{Entity};
 
-use super::{client::{Neo4JClient, DbClient, self}, repository::{ReadRepository, DbActionError, ModifyRepository, WriteRepository, ReadAllRepository}};
+use super::{client::{Neo4JClient, DbClient}, repository::{DbActionError, ModifyRepository, WriteRepository}};
 
 pub struct SessionRepository {
     client: Arc<Neo4JClient>,

@@ -9,7 +9,7 @@ use schemars::JsonSchema;
 
 use crate::logic::logic::{Logic, ApplicationLogic};
 
-use super::{Task, Score, Entity, util::{self, get_string, get_bool, get_u16, get_u32, try_get_string}, FromInput};
+use super::{Task, Score, util::{self, get_string, get_bool, get_u16, try_get_string}, entity::{Entity, FromInput}};
 
 #[derive(serde::Serialize, Clone, JsonSchema, OpenApiFromRequest, Debug)]
 pub struct User {
